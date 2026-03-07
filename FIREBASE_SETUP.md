@@ -1,6 +1,6 @@
-## 🔥 Οδηγός Ρύθμισης Firebase & Firestore
+## 🔥 Οδηγός Ρύθμισης Firebase Realtime Database
 
-Αυτό το αρχείο περιέχει βήμα-βήμα οδηγίες για να ρυθμίσεις το Firebase database για το quiz app.
+Αυτό το αρχείο περιέχει βήμα-βήμα οδηγίες για να ρυθμίσεις το Firebase Realtime Database για το quiz app.
 
 ---
 
@@ -9,7 +9,7 @@
 ### 1.1 Σύνδεση στο Firebase Console
 - Πήγαινε στο: https://console.firebase.google.com/
 - Πάτα **"Add project"**
-- Βάλε όνομα (π.χ. "alosiqu-iz-quiz")
+- Βάλε όνομα (π.χ. "alwsi-quiz-db")
 - Πάτα **Continue**
 
 ### 1.2 Ενεργοποίηση Google Analytics (προαιρετικό)
@@ -26,28 +26,48 @@
 - Βάλε όνομα (π.χ. "quiz-app")
 - Πάτα **Register app**
 
-### 2.2 Αντιγραφή Firebaseonfig
+### 2.2 Αντιγραφή Firebase Config
 Θα σου εμφανιστεί κώδικας σαν:
 ```javascript
 const firebaseConfig = {
-  apiKey: "AIzaSyACFE0zgKuew9wzloh1R9PenVSlMTtrenM",
-  authDomain: "alwsiqu-iz.firebaseapp.com",
-  projectId: "alwsiqu-iz",
-  storageBucket: "alwsiqu-iz.firebasestorage.app",
-  messagingSenderId: "67049645092",
-  appId: "1:67049645092:web:dcb94bbdcdbc12f49964b1"
+  apiKey: "AIzaSyC8gHRpEppfgfkE-CJHiATUssbbuA9IYGE",
+  authDomain: "alwsi-quiz-db.firebaseapp.com",
+  projectId: "alwsi-quiz-db",
+  storageBucket: "alwsi-quiz-db.firebasestorage.app",
+  messagingSenderId: "783280722866",
+  appId: "1:783280722866:web:8c5b9d83badc19fac64aab",
+  databaseURL: "https://alwsi-quiz-db.firebasedatabase.app"
 };
 ```
 
 ### 2.3 Ενημέρωση .env.local
-Άνοιξε το αρχείο `/workspaces/alosiqu-iz/.env.local` (το έχεις ήδη):
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyACFE0zgKuew9wzloh1R9PenVSlMTtrenM
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=alwsiqu-iz.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=alwsiqu-iz
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=alwsiqu-iz.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=67049645092
-NEXT_PUBLIC_FIREBASE_APP_ID=1:67049645092:web:dcb94bbdcdbc12f49964b1
+Το αρχείο `.env.local` έχει ήδη τις σωστές τιμές.
+
+---
+
+## 🗄️ Βήμα 3: Δημιουργία Realtime Database
+
+### 3.1 Μετάβαση στο Realtime Database
+- Στο Firebase console, από το αριστερό μενού πάτα **"Realtime Database"**
+- Πάτα **"Create Database"**
+
+### 3.2 Ρύθμιση Ασφαλείας
+- Επίλεξε **"Start in test mode"** (για τώρα, επιτρέπει ανάγνωση/εγγραφή χωρίς authentication)
+- Πάτα **"Done"**
+
+### 3.3 Επιβεβαίωση
+- Τώρα η βάση δεδομένων είναι έτοιμη και το app θα μπορεί να συνδεθεί.
+
+---
+
+## ⚠️ Αντιμετώπιση Προβλημάτων
+
+Αν βλέπεις σφάλματα σύνδεσης:
+- Βεβαιώσου ότι το project ID στο `.env.local` ταιριάζει με αυτό στο Firebase console
+- Βεβαιώσου ότι δημιούργησες τη Realtime Database
+- Περίμενε 5-10 λεπτά αν μόλις δημιούργησες το project
+
+Το Realtime Database είναι δωρεάν και δεν χρειάζεται κάρτα!
 ```
 
 ---
