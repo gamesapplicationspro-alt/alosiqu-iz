@@ -1,69 +1,35 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            Καλώς ήρθατε στο Quiz της Άλωσης!
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-100 font-sans dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 animate-fade-in">
+      <main className="flex min-h-screen w-full max-w-4xl flex-col items-center justify-center py-16 px-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg shadow-2xl border border-amber-200 dark:border-amber-800">
+        <div className="flex flex-col items-center gap-8 text-center animate-slide-up">
+          <div className="text-6xl mb-4 animate-pulse">🏰</div>
+          <h1 className="max-w-2xl text-4xl md:text-5xl font-bold leading-tight tracking-tight text-amber-900 dark:text-amber-100 drop-shadow-lg">
+            Καλώς ήρθατε στο Quiz της Άλωσης της Κωνσταντινούπολης!
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Επιλέξτε τρόπο παιχνιδιού:
+          <p className="max-w-lg text-lg leading-8 text-amber-700 dark:text-amber-300">
+            Επιλέξτε τρόπο παιχνιδιού για να εξερευνήσετε την ιστορία της Άλωσης με διαδραστικό τρόπο.
           </p>
-          <div className="flex flex-col gap-4 mt-6">
+          <div className="flex flex-col gap-6 mt-8 w-full max-w-md">
             <a
               href="/quiz"
-              className="inline-block rounded bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 text-center"
+              className="inline-block rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-4 text-white font-semibold text-lg hover:from-blue-700 hover:to-blue-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              Μοναχικό Παιχνίδι
+              Μοναχικό Παιχνίδι 🏆
             </a>
             <a
               href="/create-room"
-              className="inline-block rounded bg-green-600 px-6 py-3 text-white hover:bg-green-700 text-center"
+              className="inline-block rounded-lg bg-gradient-to-r from-green-600 to-green-800 px-8 py-4 text-white font-semibold text-lg hover:from-green-700 hover:to-green-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              Δημιουργία Δωματίου (Multiplayer)
+              Δημιουργία Δωματίου (Multiplayer) 👥
             </a>
             <a
               href="/join-room"
-              className="inline-block rounded bg-purple-600 px-6 py-3 text-white hover:bg-purple-700 text-center"
+              className="inline-block rounded-lg bg-gradient-to-r from-purple-600 to-purple-800 px-8 py-4 text-white font-semibold text-lg hover:from-purple-700 hover:to-purple-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              Είσοδος σε Δωμάτιο
+              Είσοδος σε Δωμάτιο 🔑
             </a>
           </div>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
         </div>
       </main>
     </div>

@@ -41,31 +41,33 @@ export default function CreateRoom() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 dark:bg-black p-8">
-      <h1 className="text-2xl font-bold mb-4">Δημιουργία Δωματίου</h1>
-      <div className="mb-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 p-8 animate-fade-in">
+      <div className="w-full max-w-md parchment-bg rounded-lg p-8 shadow-2xl animate-slide-up">
+        <h1 className="text-2xl font-bold mb-6 text-center text-amber-900 dark:text-amber-100">Δημιουργία Δωματίου</h1>
+        <div className="mb-6">
+          <button
+            onClick={generateCode}
+            className="w-full rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-4 py-3 text-white font-semibold hover:from-amber-700 hover:to-yellow-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            Δημιουργία Κωδικού
+          </button>
+        </div>
+        <input
+          type="text"
+          value={roomCode}
+          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+          placeholder="Κωδικός Δωματίου"
+          className="w-full border-2 border-amber-600 p-3 rounded-md mb-6 text-center text-lg font-mono bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          maxLength={6}
+        />
         <button
-          onClick={generateCode}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          onClick={createRoom}
+          disabled={!roomCode || loading}
+          className="w-full rounded-lg bg-gradient-to-r from-green-600 to-green-800 px-4 py-3 text-white font-semibold hover:from-green-700 hover:to-green-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none"
         >
-          Δημιουργία Κωδικού
+          {loading ? "Δημιουργία..." : "Δημιουργία Δωματίου"}
         </button>
       </div>
-      <input
-        type="text"
-        value={roomCode}
-        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-        placeholder="Κωδικός Δωματίου"
-        className="border p-2 rounded mb-4 text-center text-lg font-mono"
-        maxLength={6}
-      />
-      <button
-        onClick={createRoom}
-        disabled={!roomCode || loading}
-        className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 disabled:opacity-50"
-      >
-        {loading ? "Δημιουργία..." : "Δημιουργία Δωματίου"}
-      </button>
     </div>
   );
 }

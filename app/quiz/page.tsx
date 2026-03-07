@@ -153,7 +153,7 @@ export default function QuizPage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-zinc-50 py-12 px-4 dark:bg-black">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 py-12 px-4 animate-fade-in">
         <div className="mx-auto max-w-3xl">
           <ProgressBar
             current={state.currentIndex + 1}
@@ -166,7 +166,7 @@ export default function QuizPage() {
           />
           <div className="mt-6 flex justify-end">
             <button
-              className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+              className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-6 py-3 text-white font-semibold hover:from-amber-700 hover:to-yellow-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl animate-glow"
               disabled={state.selectedAnswer === null}
               onClick={() => dispatch({ type: "next" })}
             >

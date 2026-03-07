@@ -15,12 +15,12 @@ export default function AnswerButton({
   isSelected = false,
 }: AnswerButtonProps) {
   let baseClasses =
-    "w-full rounded-md border p-3 text-left transition-colors";
+    "w-full rounded-md border-2 border-amber-600 p-3 text-left transition-all duration-300 transform hover:scale-102 shadow-md";
 
   if (isSelected) {
-    baseClasses += " bg-blue-100 dark:bg-blue-900";
+    baseClasses += " bg-amber-200 dark:bg-amber-800 border-amber-800";
   } else {
-    baseClasses += " bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600";
+    baseClasses += " bg-yellow-50 dark:bg-yellow-900 hover:bg-amber-100 dark:hover:bg-amber-700 border-amber-400";
   }
 
   return (

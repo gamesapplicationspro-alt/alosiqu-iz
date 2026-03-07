@@ -14,8 +14,8 @@ export default function QuestionCard({
   selectedAnswerId,
 }: QuestionCardProps) {
   return (
-    <div className="w-full max-w-xl rounded-lg border border-gray-300 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-      <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-50">
+    <div className="w-full max-w-xl rounded-lg border-2 border-amber-800 bg-gradient-to-br from-yellow-50 to-amber-100 p-6 shadow-2xl dark:border-amber-600 dark:from-yellow-900 dark:to-amber-900 parchment-bg animate-slide-up">
+      <h2 className="mb-4 text-xl font-bold text-amber-900 dark:text-amber-100 drop-shadow-md">
         {question.text}
       </h2>
       <div className="flex flex-col gap-4">
