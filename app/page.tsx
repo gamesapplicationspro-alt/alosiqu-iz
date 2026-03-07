@@ -17,15 +17,28 @@ export default function Home() {
             Καλώς ήρθατε στο Quiz της Άλωσης!
           </h1>
           <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Κάντε κλικ παρακάτω για να ξεκινήσετε το κουίζ με 10 ερωτήσεις
-            πολλαπλής επιλογής πάνω στην Άλωση της Κωνσταντινούπολης.
+            Επιλέξτε τρόπο παιχνιδιού:
           </p>
-          <a
-            href="/quiz"
-            className="mt-6 inline-block rounded bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
-          >
-            Ξεκίνα το Quiz
-          </a>
+          <div className="flex flex-col gap-4 mt-6">
+            <a
+              href="/quiz"
+              className="inline-block rounded bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 text-center"
+            >
+              Μοναχικό Παιχνίδι
+            </a>
+            <a
+              href="/create-room"
+              className="inline-block rounded bg-green-600 px-6 py-3 text-white hover:bg-green-700 text-center"
+            >
+              Δημιουργία Δωματίου (Multiplayer)
+            </a>
+            <a
+              href="/join-room"
+              className="inline-block rounded bg-purple-600 px-6 py-3 text-white hover:bg-purple-700 text-center"
+            >
+              Είσοδος σε Δωμάτιο
+            </a>
+          </div>
         </div>
         <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
           <a

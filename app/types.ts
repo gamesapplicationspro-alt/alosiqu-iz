@@ -9,3 +9,22 @@ export interface Question {
   answers: Answer[];
   correctAnswerId: string;
 }
+
+export interface Room {
+  id: string;
+  code: string;
+  hostId: string;
+  questions: Question[];
+  currentQuestionIndex: number;
+  status: 'waiting' | 'active' | 'finished';
+  timer: number; // seconds left for current question
+  createdAt: Date;
+}
+
+export interface Player {
+  id: string;
+  name: string;
+  score: number;
+  roomId: string;
+  answers: { questionId: string; answerId: string; time: number }[];
+}
