@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { query, where, getDocs, collection } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db } from "@/lib/firebase";
 
 export default function JoinRoom() {
   const [roomCode, setRoomCode] = useState("");

@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { doc, onSnapshot, updateDoc, addDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../lib/firebase";
-import { Room, Player, Question } from "../../types";
-import QuestionCard from "../quiz/components/QuestionCard";
-import ProgressBar from "../quiz/components/ProgressBar";
-import ErrorBoundary from "../quiz/components/ErrorBoundary";
+import { db } from "@/lib/firebase";
+import { Room, Player, Question } from "@/types";
+import QuestionCard from "@/quiz/components/QuestionCard";
+import ProgressBar from "@/quiz/components/ProgressBar";
+import ErrorBoundary from "@/quiz/components/ErrorBoundary";
 
 interface RoomPageProps {
   params: { id: string };
@@ -85,6 +85,8 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       await updateDoc(doc(db, "rooms", roomId), { status: 'active' });
     }
   };
+
+  const handleNext = async () => {
     if (!room || !currentPlayer) return;
     const currentQ = room.questions[room.currentQuestionIndex];
     const isCorrect = selectedAnswer === currentQ.correctAnswerId;

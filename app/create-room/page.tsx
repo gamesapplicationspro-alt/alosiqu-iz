@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
-import { db } from "../../lib/firebase";
-import { QUESTIONS } from "../../lib/questions";
-import { Room } from "../../types";
+import { db } from "@/lib/firebase";
+import { QUESTIONS } from "@/lib/questions";
+import { Room } from "@/types";
 
 export default function CreateRoom() {
   const [roomCode, setRoomCode] = useState("");
