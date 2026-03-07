@@ -23,8 +23,7 @@ links to `/quiz` where the interactive multiple‑choice test lives.
 - ErrorBoundary component catches rendering failures.
 - Optional integration with Firebase/Firestore to persist scores (see below).
 - Responsive design, suitable for phones – just open the URL on a mobile device.
-- Styled using Tailwind CSS with an "historic" colour theme.
-
+- Styled using Tailwind CSS with an "historic" colour theme.- **Multiplayer mode**: Create rooms with codes, join with friends, live leaderboard, timers per question, real-time updates.
 
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
