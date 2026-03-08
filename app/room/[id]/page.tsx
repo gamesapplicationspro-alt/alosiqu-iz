@@ -32,12 +32,19 @@ export default function RoomPage() {
         setRoom(decoded.room);
         setPlayers(decoded.players);
         
-        // Check if host is already in players
-        const host = decoded.players.find((p: Player) => p.isHost);
-        if (host) {
-          setCurrentPlayer(host);
-          return;
+        // Check if we already have a player in this room (from localStorage)
+        const existingPlayerId = localStorage.getItem(`currentPlayerId:${decoded.room.code}`);
+        if (existingPlayerId) {
+          const existingPlayer = decoded.players.find((p: Player) => p.id === existingPlayerId);
+          if (existingPlayer) {
+            setCurrentPlayer(existingPlayer);
+            return;
+          }
         }
+        
+        // If no existing player, show name modal (even for host from new device)
+        setShowNameModal(true);
+        return;
       }
       
       // Fallback to localStorage
@@ -46,14 +53,24 @@ export default function RoomPage() {
         const { room: roomData, players: playersData } = JSON.parse(stored);
         setRoom(roomData);
         setPlayers(playersData);
+        
+        // Check if we already have a player in this room
+        const existingPlayerId = localStorage.getItem(`currentPlayerId:${roomId.toUpperCase()}`);
+        if (existingPlayerId) {
+          const player = playersData.find((p: Player) => p.id === existingPlayerId);
+          if (player) {
+            setCurrentPlayer(player);
+            return;
+          }
+        }
+        
+        // Show name modal for new players
+        setShowNameModal(true);
       } else {
         setLoadError("Δωμάτιο δεν βρέθηκε. Χρειάζεσαστε το πλήρες URL με τα δεδομένα.");
         setLoading(false);
         return;
       }
-
-      // Show name modal for new players
-      setShowNameModal(true);
     } catch (err) {
       console.error("Load error:", err);
       setLoadError("Σφάλμα φόρτωσης δωματίου. Βεβαιωθείτε ότι έχετε το σωστό URL.");
