@@ -25,7 +25,17 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const playerName = searchParams.name || "Anonymous";
 
   useEffect(() => {
-    const db = getDb();
+    if (!roomId || typeof roomId !== "string") return;
+
+    let db;
+    try {
+      db = getDb();
+    } catch (err) {
+      console.error("Unable to initialize Firebase:", err);
+      setLoading(false);
+      return;
+    }
+
     // Listen to room changes
     const roomRef = ref(db, `rooms/${roomId}`);
     const unsubscribeRoom = onValue(roomRef, (snapshot) => {
@@ -63,7 +73,13 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   useEffect(() => {
     // Add player if not exists
     if (room && !currentPlayer) {
-      const db = getDb();
+      let db;
+      try {
+        db = getDb();
+      } catch (err) {
+        console.error("Unable to initialize Firebase:", err);
+        return;
+      }
       const newPlayerRef = push(ref(db, "players"));
       const newPlayer: Omit<Player, 'id'> = {
         name: playerName,
