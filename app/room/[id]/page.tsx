@@ -66,7 +66,18 @@ export default function RoomPage() {
             const playersData: Player[] = [];
             if (snapshot.exists()) {
               snapshot.forEach((child) => {
-                playersData.push({ id: child.key!, ...child.val() } as Player);
+                const playerData = child.val();
+                if (playerData && playerData.answers && Array.isArray(playerData.answers)) {
+                  playersData.push({ id: child.key!, ...playerData } as Player);
+                } else {
+                  playersData.push({ 
+                    id: child.key!, 
+                    name: playerData?.name || "Unknown", 
+                    score: playerData?.score || 0,
+                    roomId: playerData?.roomId || "",
+                    answers: playerData?.answers || []
+                  } as Player);
+                }
               });
             }
             setPlayers(playersData);
@@ -156,7 +167,10 @@ export default function RoomPage() {
     if (!room || !currentPlayer || selectedAnswer === null) return;
 
     const question = room.questions[room.currentQuestionIndex];
-    if (!question || !question.answers) return;
+    if (!question || !question.answers || !Array.isArray(question.answers)) {
+      console.error("Invalid question or answers data");
+      return;
+    }
     
     const selectedAnswerObj = question.answers[selectedAnswer];
     const correct = selectedAnswerObj.id === question.correctAnswerId;
@@ -164,10 +178,11 @@ export default function RoomPage() {
 
     const updatedPlayers = players.map((p) => {
       if (p.id === currentPlayer.id) {
+        const currentAnswers = Array.isArray(p.answers) ? p.answers : [];
         return {
           ...p,
           score: p.score + points,
-          answers: [...p.answers, { questionId: question.id, answerId: selectedAnswerObj.id, time: Date.now() }],
+          answers: [...currentAnswers, { questionId: question.id, answerId: selectedAnswerObj.id, time: Date.now() }],
         };
       }
       return p;
