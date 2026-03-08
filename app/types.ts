@@ -18,7 +18,7 @@ export interface Room {
   currentQuestionIndex: number;
   status: 'waiting' | 'active' | 'finished';
   timer: number; // seconds left for current question
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface Player {
