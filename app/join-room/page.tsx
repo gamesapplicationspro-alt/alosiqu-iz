@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ref, query, orderByChild, equalTo, get, push, set } from "firebase/database";
-import { getDb } from "@/lib/firebase";
+import { Room, Player } from "@/types";
 
 export default function JoinRoom() {
   const [roomCode, setRoomCode] = useState("");
@@ -13,35 +12,27 @@ export default function JoinRoom() {
     if (!roomCode || !playerName) return;
     setLoading(true);
     try {
-      const db = getDb();
-      // Query rooms by code
-      const roomsRef = ref(db, "rooms");
-      const roomsQuery = query(roomsRef, orderByChild("code"), equalTo(roomCode.toUpperCase()));
-      const snapshot = await get(roomsQuery);
-      
-      if (snapshot.exists()) {
-        // Get the room ID from the snapshot key
-        const roomData = snapshot.val();
-        const roomId = Object.keys(roomData)[0];
-        if (!roomId) throw new Error("Room id not found from query result");
-
-        // Create player
-        const playerRef = push(ref(db, "players"));
-        if (!playerRef.key) throw new Error("Unable to create player id");
-        const playerId = playerRef.key;
-
-        await set(playerRef, {
-          name: playerName,
-          score: 0,
-          roomId,
-          answers: [],
-        });
-
-        // Redirect to room page
-        window.location.href = `/room/${roomId}?playerId=${encodeURIComponent(playerId)}`;
-      } else {
+      const stored = localStorage.getItem(`room:${roomCode.toUpperCase()}`);
+      if (!stored) {
         alert("Δωμάτιο δεν βρέθηκε");
+        return;
       }
+
+      const { room, players } = JSON.parse(stored);
+
+      const newPlayer: Player = {
+        id: "player-" + Math.random().toString(36).substring(2, 9),
+        name: playerName,
+        score: 0,
+        roomId: room.id,
+        answers: [],
+      };
+
+      players.push(newPlayer);
+      localStorage.setItem(`room:${roomCode.toUpperCase()}`, JSON.stringify({ room, players }));
+      localStorage.setItem(`roomPlayerId:${roomCode.toUpperCase()}`, newPlayer.id);
+
+      window.location.href = `/room/${room.id}?playerId=${encodeURIComponent(newPlayer.id)}`;
     } catch (error) {
       console.error("Error joining room:", error);
       alert(`Σφάλμα στην είσοδο: ${error instanceof Error ? error.message : String(error)}`);

@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { ref, set, push } from "firebase/database";
-import { getDb } from "@/lib/firebase";
 import { QUESTIONS } from "@/lib/questions";
-import { Room } from "@/types";
+import { Room, Player } from "@/types";
 
 export default function CreateRoom() {
   const [roomCode, setRoomCode] = useState("");
@@ -19,30 +17,21 @@ export default function CreateRoom() {
     if (!roomCode) return;
     setLoading(true);
     try {
-      const db = getDb();
       const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
 
-      // Create a new room with auto-generated ID using push
-      const roomRef = push(ref(db, "rooms"));
-      if (!roomRef.key) throw new Error("Unable to create room id");
-      const roomId = roomRef.key;
-
-      // Create host player and store the player id inside the room
-      const hostPlayerRef = push(ref(db, "players"));
-      if (!hostPlayerRef.key) throw new Error("Unable to create host player id");
-      const hostPlayerId = hostPlayerRef.key;
-
-      await set(hostPlayerRef, {
+      const hostPlayer: Player = {
+        id: "host-" + Math.random().toString(36).substring(2, 9),
         name: "Host",
-        isHost: true,
         score: 0,
-        roomId,
+        roomId: roomCode,
         answers: [],
-      });
+        isHost: true,
+      };
 
-      const room: Omit<Room, "id"> = {
+      const room: Room = {
+        id: roomCode,
         code: roomCode,
-        hostId: hostPlayerId,
+        hostId: hostPlayer.id,
         questions: shuffledQuestions,
         currentQuestionIndex: 0,
         status: "waiting",
@@ -50,10 +39,11 @@ export default function CreateRoom() {
         createdAt: new Date().toISOString(),
       };
 
-      await set(roomRef, room);
+      // Save to localStorage
+      localStorage.setItem(`room:${roomCode}`, JSON.stringify({ room, players: [hostPlayer] }));
+      localStorage.setItem(`roomPlayerId:${roomCode}`, hostPlayer.id);
 
-      // Redirect to room page
-      window.location.href = `/room/${roomId}?playerId=${encodeURIComponent(hostPlayerId)}`;
+      window.location.href = `/room/${roomCode}?playerId=${encodeURIComponent(hostPlayer.id)}`;
     } catch (error) {
       console.error("Error creating room:", error);
       alert("Σφάλμα στη δημιουργία δωματίου");
