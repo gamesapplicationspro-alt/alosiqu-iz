@@ -84,7 +84,11 @@ export default function RoomPage() {
 
             if (playerId) {
               const player = playersData.find((p) => p.id === playerId);
-              if (player) setCurrentPlayer(player);
+              if (player) {
+                // Check if this player is the host by comparing with room's hostId
+                const isHost = room?.hostId === player.id || player.isHost;
+                setCurrentPlayer({ ...player, isHost });
+              }
             }
           },
           (error: any) => {
@@ -157,13 +161,28 @@ export default function RoomPage() {
     return () => clearTimeout(timer);
   }, [timeLeft, room]);
 
-  const startGame = () => {
+  const startGame = async () => {
     if (!room || !currentPlayer?.isHost) return;
-    setRoom({ ...room, status: "active", currentQuestionIndex: 0, timer: 30 });
-    setTimeLeft(30);
+    
+    try {
+      const db = await getDb();
+      const roomRef = ref(db, `rooms/${roomId}`);
+      
+      // Update room status in Firebase
+      await update(roomRef, {
+        status: "active",
+        currentQuestionIndex: 0,
+        timer: 30
+      });
+      
+      // Local state will be updated by the listener
+    } catch (error) {
+      console.error("Error starting game:", error);
+      setLoadError("Σφάλμα εκκίνησης παιχνιδιού");
+    }
   };
 
-  const submitAnswer = () => {
+  const submitAnswer = async () => {
     if (!room || !currentPlayer || selectedAnswer === null) return;
 
     const question = room.questions[room.currentQuestionIndex];
@@ -191,14 +210,44 @@ export default function RoomPage() {
     setPlayers(updatedPlayers);
     setSelectedAnswer(null);
 
-    // Next question or finish
+    // Save player's updated score and answers to Firebase
+    try {
+      const db = await getDb();
+      const playerRef = ref(db, `players/${currentPlayer.id}`);
+      const updatedPlayer = updatedPlayers.find(p => p.id === currentPlayer.id);
+      if (updatedPlayer) {
+        await update(playerRef, {
+          score: updatedPlayer.score,
+          answers: updatedPlayer.answers
+        });
+      }
+    } catch (error) {
+      console.error("Error saving player data:", error);
+    }
+
+    // Next question or finish - update room in Firebase
     if (room.currentQuestionIndex + 1 < room.questions.length) {
-      setTimeout(() => {
-        setRoom((prev) => prev ? { ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1, timer: 30 } : null);
-        setTimeLeft(30);
+      setTimeout(async () => {
+        try {
+          const db = await getDb();
+          const roomRef = ref(db, `rooms/${roomId}`);
+          await update(roomRef, {
+            currentQuestionIndex: room.currentQuestionIndex + 1,
+            timer: 30
+          });
+          // Local state will be updated by the listener
+        } catch (error) {
+          console.error("Error advancing to next question:", error);
+        }
       }, 2000);
     } else {
-      setRoom((prev) => prev ? { ...prev, status: "finished" } : null);
+      try {
+        const db = await getDb();
+        const roomRef = ref(db, `rooms/${roomId}`);
+        await update(roomRef, { status: "finished" });
+      } catch (error) {
+        console.error("Error finishing game:", error);
+      }
     }
   };
 
