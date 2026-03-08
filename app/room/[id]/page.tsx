@@ -23,6 +23,7 @@ export default function RoomPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState("");
+  const [countdownToNext, setCountdownToNext] = useState(0);
 
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
@@ -196,50 +197,69 @@ export default function RoomPage() {
     const allAnswered = players.length > 0 && players.every(p => p.hasAnswered);
     
     if (timeLeft <= 0 || allAnswered) {
-      // Move to next question for everyone
-      if (room.currentQuestionIndex + 1 < room.questions.length) {
-        const nextQuestion = async () => {
-          try {
-            const db = await getDb();
-            const roomRef = ref(db, `rooms/${roomId}`);
-            
-            // Reset all players' hasAnswered status for next question
-            const playersRef = ref(db, "players");
-            const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
-            
-            onValue(playersQuery, (snapshot) => {
-              if (snapshot.exists()) {
-                snapshot.forEach((child) => {
-                  update(ref(db, `players/${child.key}`), { hasAnswered: false });
-                });
-              }
-            }, { onlyOnce: true });
+      // Show countdown for 3 seconds before moving to next question
+      setCountdownToNext(3);
+      
+      const countdownInterval = setInterval(() => {
+        setCountdownToNext(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      // Wait 3 seconds before moving to next question so players can see results
+      setTimeout(async () => {
+        setCountdownToNext(0);
+        
+        // Move to next question for everyone
+        if (room.currentQuestionIndex + 1 < room.questions.length) {
+          const nextQuestion = async () => {
+            try {
+              const db = await getDb();
+              const roomRef = ref(db, `rooms/${roomId}`);
+              
+              // Reset all players' hasAnswered status for next question
+              const playersRef = ref(db, "players");
+              const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
+              
+              onValue(playersQuery, (snapshot) => {
+                if (snapshot.exists()) {
+                  snapshot.forEach((child) => {
+                    update(ref(db, `players/${child.key}`), { hasAnswered: false });
+                  });
+                }
+              }, { onlyOnce: true });
 
-            // Move to next question
-            await update(roomRef, {
-              currentQuestionIndex: room.currentQuestionIndex + 1,
-              timer: 30
-            });
-          } catch (error) {
-            console.error("Error advancing to next question:", error);
-          }
-        };
-        
-        nextQuestion();
-      } else {
-        // Game finished
-        const finishGame = async () => {
-          try {
-            const db = await getDb();
-            const roomRef = ref(db, `rooms/${roomId}`);
-            await update(roomRef, { status: "finished" });
-          } catch (error) {
-            console.error("Error finishing game:", error);
-          }
-        };
-        
-        finishGame();
-      }
+              // Move to next question
+              await update(roomRef, {
+                currentQuestionIndex: room.currentQuestionIndex + 1,
+                timer: 30
+              });
+            } catch (error) {
+              console.error("Error advancing to next question:", error);
+            }
+          };
+          
+          nextQuestion();
+        } else {
+          // Game finished
+          const finishGame = async () => {
+            try {
+              const db = await getDb();
+              const roomRef = ref(db, `rooms/${roomId}`);
+              await update(roomRef, { status: "finished" });
+            } catch (error) {
+              console.error("Error finishing game:", error);
+            }
+          };
+          
+          finishGame();
+        }
+      }, 3000);
+      
       return;
     }
 
@@ -447,7 +467,24 @@ export default function RoomPage() {
             {currentPlayer?.hasAnswered ? (
               <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
                 <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-2">✓ Απάντησες!</h3>
-                <p className="text-green-700 dark:text-green-300">Περίμενε τους υπόλοιπους παίκτες...</p>
+                <p className="text-green-700 dark:text-green-300">
+                  {countdownToNext > 0 
+                    ? `Επόμενη ερώτηση σε ${countdownToNext}...` 
+                    : "Περίμενε τους υπόλοιπους παίκτες..."
+                  }
+                </p>
+                
+                {/* Show countdown when all answered */}
+                {countdownToNext > 0 && (
+                  <div className="mt-4">
+                    <div className="text-4xl font-bold text-amber-600 dark:text-amber-400 animate-pulse">
+                      {countdownToNext}
+                    </div>
+                    <div className="text-sm text-amber-700 dark:text-amber-300">
+                      Όλοι απάντησαν! Επόμενη ερώτηση...
+                    </div>
+                  </div>
+                )}
                 
                 {/* Show answer results immediately after submission */}
                 <div className="mt-6 space-y-2">
