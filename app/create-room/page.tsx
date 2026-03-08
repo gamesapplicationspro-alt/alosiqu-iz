@@ -41,9 +41,9 @@ export default function CreateRoom() {
 
       // Save to localStorage
       localStorage.setItem(`room:${roomCode}`, JSON.stringify({ room, players: [hostPlayer] }));
-      localStorage.setItem(`roomPlayerId:${roomCode}`, hostPlayer.id);
 
-      window.location.href = `/room/${roomCode}?playerId=${encodeURIComponent(hostPlayer.id)}`;
+      // Redirect to room URL (no playerId needed)
+      window.location.href = `/room/${roomCode}`;
     } catch (error) {
       console.error("Error creating room:", error);
       alert("Σφάλμα στη δημιουργία δωματίου");

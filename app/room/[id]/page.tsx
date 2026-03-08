@@ -1,16 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Room, Player, Question } from "@/types";
 
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const roomId = params.id as string;
-  const playerId = searchParams.get("playerId") || undefined;
-  const playerName = searchParams.get("name") || "Anonymous";
 
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -19,6 +16,8 @@ export default function RoomPage() {
   const [timeLeft, setTimeLeft] = useState(30);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [playerName, setPlayerName] = useState("");
 
   // Load from localStorage
   useEffect(() => {
@@ -36,20 +35,45 @@ export default function RoomPage() {
       setRoom(roomData);
       setPlayers(playersData);
 
-      // Find current player
-      const player = playersData.find((p: Player) => p.id === playerId);
-      if (player) {
-        setCurrentPlayer(player);
-      } else {
-        setLoadError("Λείπει το playerId. Μπες ξανά στο δωμάτιο από το Join Room (ή δημιούργησε νέο δωμάτιο).");
+      // Check if we already have a player in this room
+      const existingPlayerId = localStorage.getItem(`currentPlayerId:${roomId}`);
+      if (existingPlayerId) {
+        const player = playersData.find((p: Player) => p.id === existingPlayerId);
+        if (player) {
+          setCurrentPlayer(player);
+          return;
+        }
       }
+
+      // Show name modal to create/join as player
+      setShowNameModal(true);
     } catch (err) {
       console.error("Load error:", err);
       setLoadError("Σφάλμα φόρτωσης δωματίου.");
     } finally {
       setLoading(false);
     }
-  }, [roomId, playerId]);
+  }, [roomId]);
+
+  // Create player from name modal
+  const createPlayer = () => {
+    if (!playerName.trim() || !room) return;
+
+    const newPlayer: Player = {
+      id: "player-" + Math.random().toString(36).substring(2, 9),
+      name: playerName.trim(),
+      score: 0,
+      roomId: room.id,
+      answers: [],
+    };
+
+    const updatedPlayers = [...players, newPlayer];
+    setPlayers(updatedPlayers);
+    setCurrentPlayer(newPlayer);
+    localStorage.setItem(`currentPlayerId:${roomId}`, newPlayer.id);
+    setShowNameModal(false);
+    setPlayerName("");
+  };
 
   // Auto-save to localStorage on changes
   useEffect(() => {
@@ -140,6 +164,31 @@ export default function RoomPage() {
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900">
+      {/* Name Modal */}
+      {showNameModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">Δώσε το όνομά σου</h2>
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              placeholder="Όνομα παίκτη"
+              className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              autoFocus
+              onKeyDown={(e) => e.key === "Enter" && createPlayer()}
+            />
+            <button
+              onClick={createPlayer}
+              disabled={!playerName.trim()}
+              className="w-full rounded-lg bg-amber-600 px-4 py-3 text-white font-semibold hover:bg-amber-700 disabled:opacity-50"
+            >
+              Είσοδος
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 p-4 lg:p-8">
         {room.status === "waiting" && (
           <div className="text-center">
