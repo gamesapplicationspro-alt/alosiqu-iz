@@ -25,6 +25,7 @@ export default function RoomPage() {
   const [playerNameInput, setPlayerNameInput] = useState("");
   const [countdownToNext, setCountdownToNext] = useState(0);
   const [showQuestionsToHost, setShowQuestionsToHost] = useState(false);
+  const [hostViewMode, setHostViewMode] = useState<'participate' | 'observe'>('participate');
 
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
@@ -476,13 +477,38 @@ export default function RoomPage() {
             <div className="text-center">
               {currentPlayer?.isHost && (
                 <div className="space-y-4">
-                  {/* Toggle Questions Preview */}
-                  <button
-                    onClick={() => setShowQuestionsToHost(!showQuestionsToHost)}
-                    className="rounded-lg bg-purple-600 px-6 py-3 text-white font-semibold hover:bg-purple-700 transform hover:scale-105 transition-all shadow-lg mr-4"
-                  >
-                    {showQuestionsToHost ? "🙈 Απόκρυψε Ερωτήσεις" : "👁️ Δες Ερωτήσεις"}
-                  </button>
+                  {/* View Mode Selector */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
+                    <div className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-3">👑 Host Mode</div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setHostViewMode('participate');
+                          setShowQuestionsToHost(false);
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                          hostViewMode === 'participate'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        🎮 Συμμετέχω
+                      </button>
+                      <button
+                        onClick={() => {
+                          setHostViewMode('observe');
+                          setShowQuestionsToHost(true);
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                          hostViewMode === 'observe'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        👁️ Παρατηρώ
+                      </button>
+                    </div>
+                  </div>
                   
                   {/* Start Game Button */}
                   <button
@@ -512,12 +538,15 @@ export default function RoomPage() {
               )}
             </div>
 
-            {/* Questions Preview for Host */}
-            {showQuestionsToHost && currentPlayer?.isHost && (
+            {/* Questions Preview for Host (Observe Mode Only) */}
+            {showQuestionsToHost && currentPlayer?.isHost && hostViewMode === 'observe' && (
               <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl animate-fade-in">
                 <h3 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">
-                  📋 Προεπισκόπηση Ερωτήσεων ({room.questions.length})
+                  �️ Προεπισκόπηση Ερωτήσεων ({room.questions.length})
                 </h3>
+                <div className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                  Σε observe mode - δεν μπορείς να συμμετέχεις στο παιχνίδι
+                </div>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {room.questions.map((q, idx) => (
                     <div 
@@ -547,121 +576,160 @@ export default function RoomPage() {
 
         {room.status === "active" && currentQuestion && currentQuestion.answers && (
           <div className="animate-fade-in">
-            <div className="mb-6 text-center">
-              <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg">
-                <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">⏱</span>
-                <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">{timeLeft}s</span>
-                <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
-                  {players.filter(p => p.hasAnswered).length}/{players.length} απάντησαν
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-6 transform transition-all duration-500 hover:scale-102">
-              <div className="flex items-center mb-4">
-                <div className="bg-amber-600 text-white rounded-full px-3 py-1 text-sm font-bold mr-3">
-                  ΕΡΩΤΗΣΗ {room.currentQuestionIndex + 1}
-                </div>
-                <div className="h-1 flex-1 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"></div>
-                <div className="bg-amber-600 text-white rounded-full px-3 py-1 text-sm font-bold ml-3">
-                  {room.questions.length}
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-100 leading-relaxed">
-                {currentQuestion.text}
-              </h2>
-            </div>
-            
-            {currentPlayer?.hasAnswered ? (
-              <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
-                <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-2">✓ Απάντησες!</h3>
-                <p className="text-green-700 dark:text-green-300">
-                  {countdownToNext > 0 
-                    ? `Επόμενη ερώτηση σε ${countdownToNext}...` 
-                    : "Περίμενε τους υπόλοιπους παίκτες..."
-                  }
-                </p>
-                
-                {/* Show countdown when all answered */}
-                {countdownToNext > 0 && (
-                  <div className="mt-4">
-                    <div className="text-4xl font-bold text-amber-600 dark:text-amber-400 animate-pulse">
-                      {countdownToNext}
-                    </div>
-                    <div className="text-sm text-amber-700 dark:text-amber-300">
-                      Όλοι απάντησαν! Επόμενη ερώτηση...
-                    </div>
-                  </div>
-                )}
-                
-                {/* Show answer results immediately after submission */}
-                <div className="mt-6 space-y-2">
-                  {currentQuestion.answers.map((answer, idx) => {
-                    const isCorrect = answer.id === currentQuestion.correctAnswerId;
-                    const wasSelected = selectedAnswer === idx;
-                    
-                    return (
+            {/* Host Observe Mode View */}
+            {currentPlayer?.isHost && hostViewMode === 'observe' ? (
+              <div className="text-center p-8 bg-purple-100 dark:bg-purple-900 rounded-xl">
+                <div className="text-6xl mb-4 animate-pulse">👁️</div>
+                <h2 className="text-2xl font-bold mb-4 text-purple-900 dark:text-purple-100">
+                  Host Observe Mode
+                </h2>
+                <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-6 mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-900 dark:text-purple-100">
+                    Ερώτηση {room.currentQuestionIndex + 1}: {currentQuestion.text}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {currentQuestion.answers.map((answer, idx) => (
                       <div 
                         key={idx}
-                        className={`p-3 rounded-lg text-left ${
-                          isCorrect 
-                            ? "bg-green-500 text-white" 
-                            : wasSelected 
-                            ? "bg-red-500 text-white" 
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                        }`}
+                        className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700"
                       >
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold">
-                            {String.fromCharCode(65 + idx)}. {answer.text}
-                          </span>
-                          <span className="text-2xl font-bold">
-                            {isCorrect ? "✓ ΣΩΣΤΟ" : wasSelected ? "✗ ΛΑΘΟΣ" : ""}
-                          </span>
-                        </div>
+                        <span className="font-bold text-purple-900 dark:text-purple-100">
+                          {String.fromCharCode(65 + idx)}. {answer.text}
+                        </span>
+                        {answer.id === currentQuestion.correctAnswerId && (
+                          <span className="ml-2 text-green-600 font-bold">✓ ΣΩΣΤΟ</span>
+                        )}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+                <div className="text-purple-700 dark:text-purple-300">
+                  <div className="mb-2">⏱ {timeLeft}s απομένουν</div>
+                  <div className="text-sm">
+                    {players.filter(p => p.hasAnswered).length}/{players.length} παίκτες απάντησαν
+                  </div>
                 </div>
               </div>
             ) : (
+              // Normal Game View
               <>
-                <div className="space-y-3">
-                  {currentQuestion.answers.map((answer, idx) => {
-                    const isSelected = selectedAnswer === idx;
-                    
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => !currentPlayer?.hasAnswered && setSelectedAnswer(idx)}
-                        disabled={currentPlayer?.hasAnswered}
-                        className={`w-full p-4 text-left rounded-lg transition-all transform hover:scale-102 ${
-                          isSelected
-                            ? "bg-blue-600 text-white scale-105 shadow-lg"
-                            : currentPlayer?.hasAnswered
-                            ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
-                            : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        <span className="font-semibold">
-                          {String.fromCharCode(65 + idx)}. {answer.text}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedAnswer !== null && !currentPlayer?.hasAnswered && (
-                  <button
-                    onClick={submitAnswer}
-                    className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 animate-bounce"
-                  >
-                    Υποβολή
-                  </button>
-                )}
-                {currentPlayer?.hasAnswered && (
-                  <div className="mt-6 text-center text-green-700 dark:text-green-300 font-semibold">
-                    ✓ Η απάντησή σου καταχωρήθηκε - Περίμενε την επόμενη ερώτηση
+                <div className="mb-6 text-center">
+                  <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg">
+                    <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">⏱</span>
+                    <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">{timeLeft}s</span>
+                    <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
+                      {players.filter(p => p.hasAnswered).length}/{players.length} απάντησαν
+                    </div>
                   </div>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-6 transform transition-all duration-500 hover:scale-102">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-amber-600 text-white rounded-full px-3 py-1 text-sm font-bold mr-3">
+                      ΕΡΩΤΗΣΗ {room.currentQuestionIndex + 1}
+                    </div>
+                    <div className="h-1 flex-1 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"></div>
+                    <div className="bg-amber-600 text-white rounded-full px-3 py-1 text-sm font-bold ml-3">
+                      {room.questions.length}
+                    </div>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-100 leading-relaxed">
+                    {currentQuestion.text}
+                  </h2>
+                </div>
+                
+                {currentPlayer?.hasAnswered ? (
+                  <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
+                    <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-2">✓ Απάντησες!</h3>
+                    <p className="text-green-700 dark:text-green-300">
+                      {countdownToNext > 0 
+                        ? `Επόμενη ερώτηση σε ${countdownToNext}...` 
+                        : "Περίμενε τους υπόλοιπους παίκτες..."
+                      }
+                    </p>
+                    
+                    {/* Show countdown when all answered */}
+                    {countdownToNext > 0 && (
+                      <div className="mt-4">
+                        <div className="text-4xl font-bold text-amber-600 dark:text-amber-400 animate-pulse">
+                          {countdownToNext}
+                        </div>
+                        <div className="text-sm text-amber-700 dark:text-amber-300">
+                          Όλοι απάντησαν! Επόμενη ερώτηση...
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Show answer results immediately after submission */}
+                    <div className="mt-6 space-y-2">
+                      {currentQuestion.answers.map((answer, idx) => {
+                        const isCorrect = answer.id === currentQuestion.correctAnswerId;
+                        const wasSelected = selectedAnswer === idx;
+                        
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-lg text-left ${
+                              isCorrect 
+                                ? "bg-green-500 text-white" 
+                                : wasSelected 
+                                ? "bg-red-500 text-white" 
+                                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">
+                                {String.fromCharCode(65 + idx)}. {answer.text}
+                              </span>
+                              <span className="text-2xl font-bold">
+                                {isCorrect ? "✓ ΣΩΣΤΟ" : wasSelected ? "✗ ΛΑΘΟΣ" : ""}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {currentQuestion.answers.map((answer, idx) => {
+                        const isSelected = selectedAnswer === idx;
+                        
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => !currentPlayer?.hasAnswered && setSelectedAnswer(idx)}
+                            disabled={currentPlayer?.hasAnswered}
+                            className={`w-full p-4 text-left rounded-lg transition-all transform hover:scale-102 ${
+                              isSelected
+                                ? "bg-blue-600 text-white scale-105 shadow-lg"
+                                : currentPlayer?.hasAnswered
+                                ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
+                                : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            <span className="font-semibold">
+                              {String.fromCharCode(65 + idx)}. {answer.text}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedAnswer !== null && !currentPlayer?.hasAnswered && (
+                      <button
+                        onClick={submitAnswer}
+                        className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 animate-bounce"
+                      >
+                        Υποβολή
+                      </button>
+                    )}
+                    {currentPlayer?.hasAnswered && (
+                      <div className="mt-6 text-center text-green-700 dark:text-green-300 font-semibold">
+                        ✓ Η απάντησή σου καταχωρήθηκε - Περίμενε την επόμενη ερώτηση
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -717,20 +785,89 @@ export default function RoomPage() {
         )}
       </div>
 
-      <div className="w-full lg:w-80 p-4 lg:p-8 bg-amber-100 dark:bg-amber-900">
-        <h2 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">Live Leaderboard</h2>
-        <ul className="space-y-2">
-          {players
-            .sort((a, b) => b.score - a.score)
-            .map((p, idx) => (
-              <li key={p.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow flex justify-between items-center">
-                <span>
-                  {idx === 0 && "🥇"} {idx === 1 && "🥈"} {idx === 2 && "🥉"} {p.name}
-                </span>
-                <span className="font-bold">{p.score}</span>
-              </li>
-            ))}
-        </ul>
+      <div className="w-full lg:w-80 p-4 lg:p-8 parchment-bg relative overflow-hidden">
+        {/* Historic Background Elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-4 right-4 text-6xl transform rotate-12">🏛️</div>
+          <div className="absolute bottom-4 left-4 text-4xl transform -rotate-12">⚡</div>
+          <div className="absolute top-1/2 right-8 text-5xl transform rotate-45">🔱</div>
+          <div className="absolute bottom-1/3 left-6 text-3xl transform -rotate-45">🦉</div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-amber-900 dark:text-amber-100 flex items-center justify-center">
+              <span className="mr-2">🏆</span>
+              Live Leaderboard
+              <span className="ml-2">🏆</span>
+            </h2>
+            <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              {room.status === 'active' 
+                ? `Ερώτηση ${room.currentQuestionIndex + 1}/${room.questions.length}`
+                : room.status === 'waiting' 
+                ? 'Αναμονή αρχής'
+                : 'Παιχνίδι ολοκληρώθηκε'
+              }
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {players
+              .sort((a, b) => b.score - a.score)
+              .map((p, idx) => (
+                <div 
+                  key={p.id} 
+                  className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                    idx === 0 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
+                      : idx === 1 
+                      ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
+                      : idx === 2 
+                      ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
+                      : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <span className="text-xl mr-2 font-bold">
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                      </span>
+                      <div>
+                        <span className="font-bold">{p.name}</span>
+                        {p.isHost && (
+                          <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                            👑
+                          </span>
+                        )}
+                        {p.hasAnswered && room.status === 'active' && (
+                          <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-bold text-lg">{p.score}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+          
+          {/* Game Status Indicator */}
+          <div className="mt-6 text-center">
+            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${
+              room.status === 'active' 
+                ? 'bg-green-600 text-white animate-pulse' 
+                : room.status === 'waiting' 
+                ? 'bg-amber-600 text-white' 
+                : 'bg-purple-600 text-white'
+            }`}>
+              {room.status === 'active' && '🎮 Παιχνίδι σε εξέλιξη'}
+              {room.status === 'waiting' && '⏳ Αναμονή παικτών'}
+              {room.status === 'finished' && '🏆 Ολοκληρώθηκε'}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
