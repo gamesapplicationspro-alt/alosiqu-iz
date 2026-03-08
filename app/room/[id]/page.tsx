@@ -406,41 +406,57 @@ export default function RoomPage() {
               <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
                 <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-2">✓ Απάντησες!</h3>
                 <p className="text-green-700 dark:text-green-300">Περίμενε τους υπόλοιπους παίκτες...</p>
+                
+                {/* Show answer results immediately after submission */}
+                <div className="mt-6 space-y-2">
+                  {currentQuestion.answers.map((answer, idx) => {
+                    const isCorrect = answer.id === currentQuestion.correctAnswerId;
+                    const wasSelected = selectedAnswer === idx;
+                    
+                    return (
+                      <div 
+                        key={idx}
+                        className={`p-3 rounded-lg text-left ${
+                          isCorrect 
+                            ? "bg-green-500 text-white" 
+                            : wasSelected 
+                            ? "bg-red-500 text-white" 
+                            : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">
+                            {String.fromCharCode(65 + idx)}. {answer.text}
+                          </span>
+                          <span className="text-2xl font-bold">
+                            {isCorrect ? "✓ ΣΩΣΤΟ" : wasSelected ? "✗ ΛΑΘΟΣ" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <>
                 <div className="space-y-3">
                   {currentQuestion.answers.map((answer, idx) => {
                     const isSelected = selectedAnswer === idx;
-                    const isCorrect = answer.id === currentQuestion.correctAnswerId;
-                    const showResult = selectedAnswer !== null;
                     
                     return (
                       <button
                         key={idx}
-                        onClick={() => !isSelected && setSelectedAnswer(idx)}
+                        onClick={() => setSelectedAnswer(idx)}
                         disabled={selectedAnswer !== null}
-                        className={`w-full p-4 text-left rounded-lg transition-all transform ${
-                          showResult && isSelected
-                            ? isCorrect 
-                              ? "bg-green-600 text-white scale-105 animate-pulse shadow-lg"
-                              : "bg-red-600 text-white scale-95 animate-bounce"
-                            : showResult && isCorrect
-                            ? "bg-green-500 text-white scale-105 animate-pulse"
-                            : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700 hover:scale-102"
+                        className={`w-full p-4 text-left rounded-lg transition-all transform hover:scale-102 ${
+                          isSelected
+                            ? "bg-blue-600 text-white scale-105 shadow-lg"
+                            : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
                         }`}
                       >
-                        <div className="flex justify-between items-center">
-                          <span>{answer.text}</span>
-                          {showResult && isSelected && (
-                            <span className="text-2xl">
-                              {isCorrect ? "✓" : "✗"}
-                            </span>
-                          )}
-                          {showResult && !isSelected && isCorrect && (
-                            <span className="text-2xl">✓</span>
-                          )}
-                        </div>
+                        <span className="font-semibold">
+                          {String.fromCharCode(65 + idx)}. {answer.text}
+                        </span>
                       </button>
                     );
                   })}
