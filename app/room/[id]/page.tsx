@@ -57,7 +57,17 @@ export default function RoomPage() {
         }
       }
 
-      // Show name modal for new players
+      // Check if there's already a host in this room
+      const host = playersData.find((p: Player) => p.isHost);
+      if (host) {
+        // Auto-login as host (don't show modal)
+        setCurrentPlayer(host);
+        sessionStorage.setItem(`currentPlayerId:${roomId}`, host.id);
+        localStorage.setItem(`currentPlayerId:${roomId}`, host.id);
+        return;
+      }
+
+      // Show name modal for new players only
       setShowNameModal(true);
     } catch (err) {
       console.error("Load error:", err);
