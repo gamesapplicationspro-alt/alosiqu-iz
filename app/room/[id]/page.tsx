@@ -23,8 +23,10 @@ export default function RoomPage() {
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
 
+    const code = roomId.toUpperCase();
+    
     try {
-      const stored = localStorage.getItem(`room:${roomId}`);
+      const stored = localStorage.getItem(`room:${code}`);
       if (!stored) {
         setLoadError("Δωμάτιο δεν βρέθηκε. Δες αν ο κωδικός είναι σωστός.");
         setLoading(false);
@@ -36,7 +38,7 @@ export default function RoomPage() {
       setPlayers(playersData);
 
       // Check if we already have a player in this room
-      const existingPlayerId = localStorage.getItem(`currentPlayerId:${roomId}`);
+      const existingPlayerId = localStorage.getItem(`currentPlayerId:${code}`);
       if (existingPlayerId) {
         const player = playersData.find((p: Player) => p.id === existingPlayerId);
         if (player) {
@@ -70,7 +72,7 @@ export default function RoomPage() {
     const updatedPlayers = [...players, newPlayer];
     setPlayers(updatedPlayers);
     setCurrentPlayer(newPlayer);
-    localStorage.setItem(`currentPlayerId:${roomId}`, newPlayer.id);
+    localStorage.setItem(`currentPlayerId:${room.code.toUpperCase()}`, newPlayer.id);
     setShowNameModal(false);
     setPlayerName("");
   };
@@ -78,9 +80,10 @@ export default function RoomPage() {
   // Auto-save to localStorage on changes
   useEffect(() => {
     if (room && players.length > 0) {
-      localStorage.setItem(`room:${roomId}`, JSON.stringify({ room, players }));
+      const code = room.code.toUpperCase();
+      localStorage.setItem(`room:${code}`, JSON.stringify({ room, players }));
     }
-  }, [room, players, roomId]);
+  }, [room, players]);
 
   // Timer
   useEffect(() => {

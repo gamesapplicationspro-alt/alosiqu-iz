@@ -12,7 +12,8 @@ export default function JoinRoom() {
     if (!roomCode || !playerName) return;
     setLoading(true);
     try {
-      const stored = localStorage.getItem(`room:${roomCode.toUpperCase()}`);
+      const code = roomCode.toUpperCase();
+      const stored = localStorage.getItem(`room:${code}`);
       if (!stored) {
         alert("Δωμάτιο δεν βρέθηκε");
         return;
@@ -29,11 +30,11 @@ export default function JoinRoom() {
       };
 
       players.push(newPlayer);
-      localStorage.setItem(`room:${roomCode.toUpperCase()}`, JSON.stringify({ room, players }));
-      localStorage.setItem(`currentPlayerId:${roomCode.toUpperCase()}`, newPlayer.id);
+      localStorage.setItem(`room:${code}`, JSON.stringify({ room, players }));
+      localStorage.setItem(`currentPlayerId:${code}`, newPlayer.id);
 
       // Redirect to room URL
-      window.location.href = `/room/${roomCode.toUpperCase()}`;
+      window.location.href = `/room/${code}`;
     } catch (error) {
       console.error("Error joining room:", error);
       alert(`Σφάλμα στην είσοδο: ${error instanceof Error ? error.message : String(error)}`);
@@ -58,8 +59,9 @@ export default function JoinRoom() {
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
           placeholder="Κωδικός Δωματίου"
-          className="w-full border-2 border-amber-600 p-3 rounded-md mb-6 text-center text-lg font-mono bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full border-2 border-amber-600 p-3 rounded-md mb-6 text-center text-lg font-mono bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 uppercase"
           maxLength={6}
+          autoFocus
         />
         <button
           onClick={joinRoom}
