@@ -197,8 +197,11 @@ export default function RoomPage() {
   useEffect(() => {
     if (!room || room.status !== "active") return;
     
-    // Check if all players have answered
-    const allAnswered = players.length > 0 && players.every(p => p.hasAnswered);
+    // Check if all eligible players have answered (exclude host in observe mode)
+    const eligiblePlayers = players.filter(p => 
+      !(p.isHost && hostViewMode === 'observe')
+    );
+    const allAnswered = eligiblePlayers.length > 0 && eligiblePlayers.every(p => p.hasAnswered);
     
     if (timeLeft <= 0 || allAnswered) {
       // Show countdown for 3 seconds before moving to next question
@@ -441,7 +444,14 @@ export default function RoomPage() {
               <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
                 🎯 Παίκτες ({players.length}) 
                 <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
-                  {players.length >= 3 ? "✅ Έτοιμοι για παιχνίδι!" : `⏳ Χρειάζονται ${3 - players.length} ακόμη...`}
+                  {(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    return eligiblePlayers.length >= 2 
+                      ? "✅ Έτοιμοι για παιχνίδι!" 
+                      : `⏳ Χρειάζονται ${2 - eligiblePlayers.length} ακόμη...`;
+                  })()}
                 </span>
               </h2>
               
@@ -521,14 +531,31 @@ export default function RoomPage() {
                   {/* Start Game Button */}
                   <button
                     onClick={startGame}
-                    disabled={players.length < 3}
+                    disabled={(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    return eligiblePlayers.length < 2;
+                  })()}
                     className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
-                      players.length >= 3 
-                        ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
-                        : "bg-gray-400 cursor-not-allowed opacity-50"
+                      (() => {
+                        const eligiblePlayers = players.filter(p => 
+                          !(p.isHost && hostViewMode === 'observe')
+                        );
+                        return eligiblePlayers.length >= 2 
+                          ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
+                          : "bg-gray-400 cursor-not-allowed opacity-50";
+                      })()
                     }`}
                   >
-                    {players.length < 3 ? `⏳ Χρειάζονται ${3 - players.length} παίκτες` : "🚀 Ξεκίνα Παιχνίδι"}
+                    {(() => {
+                      const eligiblePlayers = players.filter(p => 
+                        !(p.isHost && hostViewMode === 'observe')
+                      );
+                      return eligiblePlayers.length < 2 
+                        ? `⏳ Χρειάζονται ${2 - eligiblePlayers.length} παίκτες` 
+                        : "🚀 Ξεκίνα Παιχνίδι";
+                    })()}
                   </button>
                 </div>
               )}
@@ -611,7 +638,12 @@ export default function RoomPage() {
                 <div className="text-purple-700 dark:text-purple-300">
                   <div className="mb-2">⏱ {timeLeft}s απομένουν</div>
                   <div className="text-sm">
-                    {players.filter(p => p.hasAnswered).length}/{players.length} παίκτες απάντησαν
+                    {(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    return `${eligiblePlayers.filter(p => p.hasAnswered).length}/${eligiblePlayers.length} παίκτες απάντησαν`;
+                  })()}
                   </div>
                 </div>
               </div>
@@ -623,7 +655,12 @@ export default function RoomPage() {
                     <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">⏱</span>
                     <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">{timeLeft}s</span>
                     <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
-                      {players.filter(p => p.hasAnswered).length}/{players.length} απάντησαν
+                      {(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    return `${eligiblePlayers.filter(p => p.hasAnswered).length}/${eligiblePlayers.length} απάντησαν`;
+                  })()}
                     </div>
                   </div>
                 </div>
