@@ -1,9 +1,11 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getDatabase } from "firebase/database";
+import { initializeApp, getApp, getApps } from "firebase/app";
+import { getDatabase, type Database } from "firebase/database";
 
 // initialize only once
-if (!getApps().length) {
-  const firebaseConfig = {
+let _db: Database | null = null;
+
+function getFirebaseConfig() {
+  return {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -12,8 +14,29 @@ if (!getApps().length) {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
   };
-
-  initializeApp(firebaseConfig);
 }
 
-export const db = getDatabase();
+function hasMinimumFirebaseConfig(cfg: ReturnType<typeof getFirebaseConfig>) {
+  return Boolean(cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId && cfg.databaseURL);
+}
+
+export function getDb(): Database {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase Database is only available in the browser");
+  }
+
+  if (_db) return _db;
+
+  const firebaseConfig = getFirebaseConfig();
+  if (!hasMinimumFirebaseConfig(firebaseConfig)) {
+    throw new Error("Missing Firebase config (check Vercel Environment Variables / .env.local)");
+  }
+
+  if (!getApps().length) {
+    initializeApp(firebaseConfig);
+  }
+
+  _db = getDatabase(getApp());
+  return _db;
+}
+

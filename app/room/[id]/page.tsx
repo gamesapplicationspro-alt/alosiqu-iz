@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ref, onValue, update, push, set, query, orderByChild, equalTo } from "firebase/database";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { Room, Player, Question } from "@/types";
 import QuestionCard from "@/quiz/components/QuestionCard";
 import ProgressBar from "@/quiz/components/ProgressBar";
@@ -25,6 +25,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const playerName = searchParams.name || "Anonymous";
 
   useEffect(() => {
+    const db = getDb();
     // Listen to room changes
     const roomRef = ref(db, `rooms/${roomId}`);
     const unsubscribeRoom = onValue(roomRef, (snapshot) => {
@@ -62,6 +63,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   useEffect(() => {
     // Add player if not exists
     if (room && !currentPlayer) {
+      const db = getDb();
       const newPlayerRef = push(ref(db, "players"));
       const newPlayer: Omit<Player, 'id'> = {
         name: playerName,
@@ -90,12 +92,14 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
 
   const startGame = async () => {
     if (room && room.hostId === currentPlayer?.id) {
+      const db = getDb();
       await update(ref(db, `rooms/${roomId}`), { status: 'active' });
     }
   };
 
   const handleNext = async () => {
     if (!room || !currentPlayer) return;
+    const db = getDb();
     const currentQ = room.questions[room.currentQuestionIndex];
     const isCorrect = selectedAnswer === currentQ.correctAnswerId;
     const newScore = currentPlayer.score + (isCorrect ? 1 : 0);

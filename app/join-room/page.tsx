@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ref, query, orderByChild, equalTo, get } from "firebase/database";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 
 export default function JoinRoom() {
   const [roomCode, setRoomCode] = useState("");
@@ -13,6 +13,7 @@ export default function JoinRoom() {
     if (!roomCode || !playerName) return;
     setLoading(true);
     try {
+      const db = getDb();
       // Query rooms by code
       const roomsRef = ref(db, "rooms");
       const roomsQuery = query(roomsRef, orderByChild("code"), equalTo(roomCode.toUpperCase()));

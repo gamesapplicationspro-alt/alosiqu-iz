@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ref, set, push } from "firebase/database";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { QUESTIONS } from "@/lib/questions";
 import { Room } from "@/types";
 
@@ -19,6 +19,7 @@ export default function CreateRoom() {
     if (!roomCode) return;
     setLoading(true);
     try {
+      const db = getDb();
       const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
       const room: Omit<Room, 'id'> = {
         code: roomCode,
