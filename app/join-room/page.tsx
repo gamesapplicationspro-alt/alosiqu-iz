@@ -30,9 +30,10 @@ export default function JoinRoom() {
 
       players.push(newPlayer);
       localStorage.setItem(`room:${roomCode.toUpperCase()}`, JSON.stringify({ room, players }));
+      localStorage.setItem(`currentPlayerId:${roomCode.toUpperCase()}`, newPlayer.id);
 
-      // Redirect to room URL (no playerId needed)
-      window.location.href = `/room/${room.id}`;
+      // Redirect to room URL
+      window.location.href = `/room/${roomCode.toUpperCase()}`;
     } catch (error) {
       console.error("Error joining room:", error);
       alert(`Σφάλμα στην είσοδο: ${error instanceof Error ? error.message : String(error)}`);
