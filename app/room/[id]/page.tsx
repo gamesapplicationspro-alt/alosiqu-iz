@@ -188,11 +188,15 @@ export default function RoomPage() {
     }
   }, [room, players]);
 
-  // Timer - handles question progression for all players
+  // Smart timer - check if all players have answered OR time is up
   useEffect(() => {
     if (!room || room.status !== "active") return;
-    if (timeLeft <= 0) {
-      // Time's up - move to next question for everyone
+    
+    // Check if all players have answered
+    const allAnswered = players.length > 0 && players.every(p => p.hasAnswered);
+    
+    if (timeLeft <= 0 || allAnswered) {
+      // Move to next question for everyone
       if (room.currentQuestionIndex + 1 < room.questions.length) {
         const nextQuestion = async () => {
           try {
@@ -241,7 +245,7 @@ export default function RoomPage() {
 
     const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, room, roomId]);
+  }, [timeLeft, room, roomId, players]);
 
   const startGame = async () => {
     if (!room || !currentPlayer?.isHost) return;
@@ -414,11 +418,31 @@ export default function RoomPage() {
         )}
 
         {room.status === "active" && currentQuestion && currentQuestion.answers && (
-          <div>
-            <div className="mb-4 text-center">
-              <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">⏱ {timeLeft}s</span>
+          <div className="animate-fade-in">
+            <div className="mb-6 text-center">
+              <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg">
+                <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">⏱</span>
+                <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">{timeLeft}s</span>
+                <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
+                  {players.filter(p => p.hasAnswered).length}/{players.length} απάντησαν
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-100">{currentQuestion.text}</h2>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-6 transform transition-all duration-500 hover:scale-102">
+              <div className="flex items-center mb-4">
+                <div className="bg-amber-600 text-white rounded-full px-3 py-1 text-sm font-bold mr-3">
+                  ΕΡΩΤΗΣΗ {room.currentQuestionIndex + 1}
+                </div>
+                <div className="h-1 flex-1 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"></div>
+                <div className="bg-amber-600 text-white rounded-full px-3 py-1 text-sm font-bold ml-3">
+                  {room.questions.length}
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-100 leading-relaxed">
+                {currentQuestion.text}
+              </h2>
+            </div>
             
             {currentPlayer?.hasAnswered ? (
               <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -500,20 +524,50 @@ export default function RoomPage() {
         )}
 
         {room.status === "finished" && (
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-6 text-amber-900 dark:text-amber-100">🏆 Τέλος Παιχνιδιού</h1>
-            <div className="space-y-2 max-w-sm mx-auto">
+          <div className="text-center animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-6">
+              <div className="text-6xl mb-6 animate-bounce">🏆</div>
+              <h1 className="text-4xl font-bold mb-6 text-amber-900 dark:text-amber-100">
+                Τέλος Παιχνιδιού!
+              </h1>
+              <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-6 py-2 inline-block mb-6">
+                <span className="font-bold">Νικητής:</span> {players.sort((a, b) => b.score - a.score)[0]?.name}
+              </div>
+            </div>
+            <div className="space-y-3 max-w-md mx-auto">
               {players
                 .sort((a, b) => b.score - a.score)
                 .map((p, idx) => (
-                  <li key={p.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex justify-between items-center">
-                    <span>
-                      {idx === 0 && "🥇"} {idx === 1 && "🥈"} {idx === 2 && "🥉"} {p.name}
-                    </span>
-                    <span className="font-bold">{p.score} πόντοι</span>
-                  </li>
+                  <div 
+                    key={p.id} 
+                    className={`p-4 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 ${
+                      idx === 0 ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white" :
+                      idx === 1 ? "bg-gradient-to-r from-gray-300 to-gray-500 text-white" :
+                      idx === 2 ? "bg-gradient-to-r from-orange-600 to-orange-800 text-white" :
+                      "bg-white dark:bg-gray-800"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-3">
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`}
+                        </span>
+                        <span className="font-bold">{p.name}</span>
+                        {p.isHost && <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded">Host</span>}
+                      </div>
+                      <span className="font-bold text-xl">{p.score} πόντοι</span>
+                    </div>
+                  </div>
                 ))}
             </div>
+            {currentPlayer?.isHost && (
+              <button
+                onClick={() => window.location.href = "/create-room"}
+                className="mt-8 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-8 py-4 text-white font-bold text-lg hover:from-amber-700 hover:to-orange-700 transform hover:scale-105 transition-all shadow-lg"
+              >
+                Νέο Παιχνίδι
+              </button>
+            )}
           </div>
         )}
       </div>
