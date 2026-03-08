@@ -27,6 +27,24 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const playerName = searchParams.name || "Anonymous";
 
   useEffect(() => {
+    if (!roomId || typeof roomId !== "string") return;
+    if (playerId) return;
+
+    try {
+      const recovered = localStorage.getItem(`roomPlayerId:${roomId}`);
+      if (recovered) {
+        window.location.replace(`/room/${roomId}?playerId=${encodeURIComponent(recovered)}`);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    setLoading(false);
+    setLoadError("Λείπει το playerId. Μπες ξανά στο δωμάτιο από το Join Room (ή δημιούργησε νέο δωμάτιο).");
+  }, [roomId, playerId]);
+
+  useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => {
       setLoading(false);
