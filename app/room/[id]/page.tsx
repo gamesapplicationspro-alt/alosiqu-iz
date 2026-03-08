@@ -126,7 +126,9 @@ export default function RoomPage() {
     if (room && players.length > 0 && playerId) {
       const player = players.find((p) => p.id === playerId);
       if (player) {
+        // Smart host detection: check if player ID matches room's hostId OR if player has isHost flag
         const isHost = room.hostId === player.id || player.isHost;
+        
         console.log("Host detection:", { 
           playerId, 
           roomHostId: room.hostId, 
@@ -134,7 +136,14 @@ export default function RoomPage() {
           finalIsHost: isHost,
           playerName: player.name 
         });
-        setCurrentPlayer(prev => prev ? { ...prev, isHost } : null);
+        
+        // Update current player with host status
+        setCurrentPlayer(prev => {
+          if (!prev || prev.id !== player.id) {
+            return { ...player, isHost };
+          }
+          return { ...prev, isHost };
+        });
       }
     }
   }, [room, players, playerId]);
@@ -268,7 +277,7 @@ export default function RoomPage() {
   };
 
   const submitAnswer = async () => {
-    if (!room || !currentPlayer || selectedAnswer === null) return;
+    if (!room || !currentPlayer || selectedAnswer === null || currentPlayer.hasAnswered) return;
 
     const question = room.questions[room.currentQuestionIndex];
     if (!question || !question.answers || !Array.isArray(question.answers)) {
@@ -280,11 +289,17 @@ export default function RoomPage() {
     const correct = selectedAnswerObj.id === question.correctAnswerId;
     const points = correct ? Math.max(10, timeLeft) : 0;
 
+    // Show immediate feedback
+    const feedbackMessage = correct 
+      ? `🎉 ΣΩΣΤΗ ΑΠΑΝΤΗΣΗ! +${points} πόντοι!` 
+      : `❌ ΛΑΘΟΣ ΑΠΑΝΤΗΣΗ! Η σωστή είναι η ${String.fromCharCode(65 + question.answers.findIndex(a => a.id === question.correctAnswerId))}`;
+    
     // Update only the current player's score and answer
     const updatedPlayer = {
       ...currentPlayer,
       score: currentPlayer.score + points,
       answers: [...(currentPlayer.answers || []), { questionId: question.id, answerId: selectedAnswerObj.id, time: Date.now() }],
+      hasAnswered: true
     };
 
     // Save player's answer to Firebase immediately
@@ -294,16 +309,19 @@ export default function RoomPage() {
       await update(playerRef, {
         score: updatedPlayer.score,
         answers: updatedPlayer.answers,
-        hasAnswered: true  // Mark that this player has answered
+        hasAnswered: true
       });
 
       // Update local state
       setCurrentPlayer(updatedPlayer);
       setPlayers(prev => prev.map(p => p.id === currentPlayer.id ? updatedPlayer : p));
-      // Don't reset selectedAnswer - keep it to show the results
+      
+      // Show toast notification (simple alert for now)
+      alert(feedbackMessage);
 
     } catch (error) {
       console.error("Error saving player data:", error);
+      alert("❌ Σφάλμα κατά την υποβολή. Παρακαλώ δοκίμασε ξανά!");
     }
   };
 
