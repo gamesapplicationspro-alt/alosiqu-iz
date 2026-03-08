@@ -34,7 +34,7 @@ export default function RoomPage() {
 
     const setupListeners = async () => {
       try {
-        db = await getDb();
+        const db = await getDb();
         
         // Listen to room changes with error handling
         const roomRef = ref(db, `rooms/${roomId}`);
