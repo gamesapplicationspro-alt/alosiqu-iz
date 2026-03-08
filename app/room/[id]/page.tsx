@@ -464,11 +464,13 @@ export default function RoomPage() {
                     return (
                       <button
                         key={idx}
-                        onClick={() => setSelectedAnswer(idx)}
-                        disabled={selectedAnswer !== null}
+                        onClick={() => !currentPlayer?.hasAnswered && setSelectedAnswer(idx)}
+                        disabled={currentPlayer?.hasAnswered}
                         className={`w-full p-4 text-left rounded-lg transition-all transform hover:scale-102 ${
                           isSelected
                             ? "bg-blue-600 text-white scale-105 shadow-lg"
+                            : currentPlayer?.hasAnswered
+                            ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
                             : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
                         }`}
                       >
