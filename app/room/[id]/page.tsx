@@ -26,9 +26,9 @@ export default function RoomPage() {
     if (!roomId || typeof roomId !== "string") return;
 
     try {
-      // Try URL data first
+      // Try URL data first (safe decode)
       if (roomDataParam) {
-        const decoded = JSON.parse(atob(decodeURIComponent(roomDataParam)));
+        const decoded = JSON.parse(decodeURIComponent(roomDataParam));
         setRoom(decoded.room);
         setPlayers(decoded.players);
         

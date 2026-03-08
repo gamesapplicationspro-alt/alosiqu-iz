@@ -39,9 +39,9 @@ export default function CreateRoom() {
         createdAt: new Date().toISOString(),
       };
 
-      // Encode room data in URL
-      const roomData = btoa(JSON.stringify({ room, players: [hostPlayer] }));
-      const shareUrl = `${window.location.origin}/room/${roomCode}?data=${encodeURIComponent(roomData)}`;
+      // Encode room data in URL (safe for Unicode)
+      const roomData = encodeURIComponent(JSON.stringify({ room, players: [hostPlayer] }));
+      const shareUrl = `${window.location.origin}/room/${roomCode}?data=${roomData}`;
 
       // Copy to clipboard and redirect
       try {
