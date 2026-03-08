@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Room, Player, Question } from "@/types";
 
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const roomId = params.id as string;
+  const roomDataParam = searchParams.get("data");
 
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -19,43 +21,46 @@ export default function RoomPage() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [playerName, setPlayerName] = useState("");
 
-  // Load from localStorage
+  // Load from URL data or localStorage
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
 
-    const code = roomId.toUpperCase();
-    
     try {
-      const stored = localStorage.getItem(`room:${code}`);
-      if (!stored) {
-        setLoadError("Δωμάτιο δεν βρέθηκε. Δες αν ο κωδικός είναι σωστός.");
+      // Try URL data first
+      if (roomDataParam) {
+        const decoded = JSON.parse(atob(decodeURIComponent(roomDataParam)));
+        setRoom(decoded.room);
+        setPlayers(decoded.players);
+        
+        // Check if host is already in players
+        const host = decoded.players.find((p: Player) => p.isHost);
+        if (host) {
+          setCurrentPlayer(host);
+          return;
+        }
+      }
+      
+      // Fallback to localStorage
+      const stored = localStorage.getItem(`room:${roomId.toUpperCase()}`);
+      if (stored) {
+        const { room: roomData, players: playersData } = JSON.parse(stored);
+        setRoom(roomData);
+        setPlayers(playersData);
+      } else {
+        setLoadError("Δωμάτιο δεν βρέθηκε. Χρειάζεσαστε το πλήρες URL με τα δεδομένα.");
         setLoading(false);
         return;
       }
 
-      const { room: roomData, players: playersData } = JSON.parse(stored);
-      setRoom(roomData);
-      setPlayers(playersData);
-
-      // Check if we already have a player in this room
-      const existingPlayerId = localStorage.getItem(`currentPlayerId:${code}`);
-      if (existingPlayerId) {
-        const player = playersData.find((p: Player) => p.id === existingPlayerId);
-        if (player) {
-          setCurrentPlayer(player);
-          return;
-        }
-      }
-
-      // Show name modal to create/join as player
+      // Show name modal for new players
       setShowNameModal(true);
     } catch (err) {
       console.error("Load error:", err);
-      setLoadError("Σφάλμα φόρτωσης δωματίου.");
+      setLoadError("Σφάλμα φόρτωσης δωματίου. Βεβαιωθείτε ότι έχετε το σωστό URL.");
     } finally {
       setLoading(false);
     }
-  }, [roomId]);
+  }, [roomId, roomDataParam]);
 
   // Create player from name modal
   const createPlayer = () => {
@@ -72,12 +77,11 @@ export default function RoomPage() {
     const updatedPlayers = [...players, newPlayer];
     setPlayers(updatedPlayers);
     setCurrentPlayer(newPlayer);
-    localStorage.setItem(`currentPlayerId:${room.code.toUpperCase()}`, newPlayer.id);
     setShowNameModal(false);
     setPlayerName("");
   };
 
-  // Auto-save to localStorage on changes
+  // Auto-save to localStorage on changes (fallback)
   useEffect(() => {
     if (room && players.length > 0) {
       const code = room.code.toUpperCase();
