@@ -461,7 +461,14 @@ export default function RoomPage() {
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                {players.map((p, idx) => (
+                {players
+                  .sort((a, b) => {
+                    // Keep consistent ordering: host first, then by name
+                    if (a.isHost && !b.isHost) return -1;
+                    if (!a.isHost && b.isHost) return 1;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((p, idx) => (
                   <div 
                     key={p.id} 
                     className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up"
@@ -861,8 +868,15 @@ export default function RoomPage() {
           
           <div className="space-y-3">
             {(() => {
-              // Filter players based on host mode
-              const leaderboardPlayers = players.filter(p => 
+              // Filter players based on host mode, but keep consistent ordering
+              const allPlayers = players.sort((a, b) => {
+                // Keep consistent ordering: host first, then by name
+                if (a.isHost && !b.isHost) return -1;
+                if (!a.isHost && b.isHost) return 1;
+                return a.name.localeCompare(b.name);
+              });
+              
+              const leaderboardPlayers = allPlayers.filter(p => 
                 !(p.isHost && hostViewMode === 'observe')
               );
               
