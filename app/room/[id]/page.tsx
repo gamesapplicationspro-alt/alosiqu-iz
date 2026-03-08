@@ -168,14 +168,60 @@ export default function RoomPage() {
     }
   }, [room, players]);
 
-  // Timer
+  // Timer - handles question progression for all players
   useEffect(() => {
     if (!room || room.status !== "active") return;
-    if (timeLeft <= 0) return;
+    if (timeLeft <= 0) {
+      // Time's up - move to next question for everyone
+      if (room.currentQuestionIndex + 1 < room.questions.length) {
+        const nextQuestion = async () => {
+          try {
+            const db = await getDb();
+            const roomRef = ref(db, `rooms/${roomId}`);
+            
+            // Reset all players' hasAnswered status for next question
+            const playersRef = ref(db, "players");
+            const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
+            
+            onValue(playersQuery, (snapshot) => {
+              if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                  update(ref(db, `players/${child.key}`), { hasAnswered: false });
+                });
+              }
+            }, { onlyOnce: true });
+
+            // Move to next question
+            await update(roomRef, {
+              currentQuestionIndex: room.currentQuestionIndex + 1,
+              timer: 30
+            });
+          } catch (error) {
+            console.error("Error advancing to next question:", error);
+          }
+        };
+        
+        nextQuestion();
+      } else {
+        // Game finished
+        const finishGame = async () => {
+          try {
+            const db = await getDb();
+            const roomRef = ref(db, `rooms/${roomId}`);
+            await update(roomRef, { status: "finished" });
+          } catch (error) {
+            console.error("Error finishing game:", error);
+          }
+        };
+        
+        finishGame();
+      }
+      return;
+    }
 
     const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, room]);
+  }, [timeLeft, room, roomId]);
 
   const startGame = async () => {
     if (!room || !currentPlayer?.isHost) return;
@@ -183,6 +229,18 @@ export default function RoomPage() {
     try {
       const db = await getDb();
       const roomRef = ref(db, `rooms/${roomId}`);
+      
+      // Reset all players' hasAnswered status
+      const playersRef = ref(db, "players");
+      const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
+      
+      onValue(playersQuery, (snapshot) => {
+        if (snapshot.exists()) {
+          snapshot.forEach((child) => {
+            update(ref(db, `players/${child.key}`), { hasAnswered: false });
+          });
+        }
+      }, { onlyOnce: true });
       
       // Update room status in Firebase
       await update(roomRef, {
@@ -211,59 +269,30 @@ export default function RoomPage() {
     const correct = selectedAnswerObj.id === question.correctAnswerId;
     const points = correct ? Math.max(10, timeLeft) : 0;
 
-    const updatedPlayers = players.map((p) => {
-      if (p.id === currentPlayer.id) {
-        const currentAnswers = Array.isArray(p.answers) ? p.answers : [];
-        return {
-          ...p,
-          score: p.score + points,
-          answers: [...currentAnswers, { questionId: question.id, answerId: selectedAnswerObj.id, time: Date.now() }],
-        };
-      }
-      return p;
-    });
+    // Update only the current player's score and answer
+    const updatedPlayer = {
+      ...currentPlayer,
+      score: currentPlayer.score + points,
+      answers: [...(currentPlayer.answers || []), { questionId: question.id, answerId: selectedAnswerObj.id, time: Date.now() }],
+    };
 
-    setPlayers(updatedPlayers);
-    setSelectedAnswer(null);
-
-    // Save player's updated score and answers to Firebase
+    // Save player's answer to Firebase immediately
     try {
       const db = await getDb();
       const playerRef = ref(db, `players/${currentPlayer.id}`);
-      const updatedPlayer = updatedPlayers.find(p => p.id === currentPlayer.id);
-      if (updatedPlayer) {
-        await update(playerRef, {
-          score: updatedPlayer.score,
-          answers: updatedPlayer.answers
-        });
-      }
+      await update(playerRef, {
+        score: updatedPlayer.score,
+        answers: updatedPlayer.answers,
+        hasAnswered: true  // Mark that this player has answered
+      });
+
+      // Update local state
+      setCurrentPlayer(updatedPlayer);
+      setPlayers(prev => prev.map(p => p.id === currentPlayer.id ? updatedPlayer : p));
+      setSelectedAnswer(null);
+
     } catch (error) {
       console.error("Error saving player data:", error);
-    }
-
-    // Next question or finish - update room in Firebase
-    if (room.currentQuestionIndex + 1 < room.questions.length) {
-      setTimeout(async () => {
-        try {
-          const db = await getDb();
-          const roomRef = ref(db, `rooms/${roomId}`);
-          await update(roomRef, {
-            currentQuestionIndex: room.currentQuestionIndex + 1,
-            timer: 30
-          });
-          // Local state will be updated by the listener
-        } catch (error) {
-          console.error("Error advancing to next question:", error);
-        }
-      }, 2000);
-    } else {
-      try {
-        const db = await getDb();
-        const roomRef = ref(db, `rooms/${roomId}`);
-        await update(roomRef, { status: "finished" });
-      } catch (error) {
-        console.error("Error finishing game:", error);
-      }
     }
   };
 
@@ -344,14 +373,6 @@ export default function RoomPage() {
                 ))}
               </ul>
             </div>
-            {/* Debug info - remove later */}
-            <div className="mb-4 p-2 bg-gray-100 text-xs">
-              Debug: Room Status: {room.status} | 
-              Current Player: {currentPlayer?.name} | 
-              Is Host: {currentPlayer?.isHost ? "YES" : "NO"} |
-              Player ID: {currentPlayer?.id} |
-              Room Host ID: {room.hostId}
-            </div>
             {currentPlayer?.isHost && (
               <button
                 onClick={startGame}
@@ -369,33 +390,43 @@ export default function RoomPage() {
               <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">⏱ {timeLeft}s</span>
             </div>
             <h2 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-100">{currentQuestion.text}</h2>
-            <div className="space-y-3">
-              {currentQuestion.answers.map((answer, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedAnswer(idx)}
-                  disabled={selectedAnswer !== null}
-                  className={`w-full p-4 text-left rounded-lg transition-all ${
-                    selectedAnswer === idx
-                      ? "bg-blue-600 text-white"
-                      : selectedAnswer !== null && answer.id === currentQuestion.correctAnswerId
-                      ? "bg-green-600 text-white"
-                      : selectedAnswer !== null && answer.id !== currentQuestion.correctAnswerId
-                      ? "bg-red-600 text-white"
-                      : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {answer.text}
-                </button>
-              ))}
-            </div>
-            {selectedAnswer !== null && (
-              <button
-                onClick={submitAnswer}
-                className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700"
-              >
-                Υποβολή
-              </button>
+            
+            {currentPlayer?.hasAnswered ? (
+              <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
+                <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-2">✓ Απάντησες!</h3>
+                <p className="text-green-700 dark:text-green-300">Περίμενε τους υπόλοιπους παίκτες...</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {currentQuestion.answers.map((answer, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedAnswer(idx)}
+                      disabled={selectedAnswer !== null}
+                      className={`w-full p-4 text-left rounded-lg transition-all ${
+                        selectedAnswer === idx
+                          ? "bg-blue-600 text-white"
+                          : selectedAnswer !== null && answer.id === currentQuestion.correctAnswerId
+                          ? "bg-green-600 text-white"
+                          : selectedAnswer !== null && answer.id !== currentQuestion.correctAnswerId
+                          ? "bg-red-600 text-white"
+                          : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      {answer.text}
+                    </button>
+                  ))}
+                </div>
+                {selectedAnswer !== null && (
+                  <button
+                    onClick={submitAnswer}
+                    className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700"
+                  >
+                    Υποβολή
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

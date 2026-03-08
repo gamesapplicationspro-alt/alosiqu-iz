@@ -28,4 +28,5 @@ export interface Player {
   score: number;
   roomId: string;
   answers: { questionId: string; answerId: string; time: number }[];
+  hasAnswered?: boolean;
 }
