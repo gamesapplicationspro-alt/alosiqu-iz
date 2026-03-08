@@ -100,9 +100,9 @@ export default function QuizPage() {
     if (!state.completed) return;
     (async () => {
       try {
-        const { getDb } = await import("../lib/firebase");
         const { ref, push, set } = await import("firebase/database");
-        const db = getDb();
+        const { getDb } = await import("../lib/firebase");
+        const db = await getDb();
         const resultsRef = ref(db, "results");
         const newResultRef = push(resultsRef);
         await set(newResultRef, {
