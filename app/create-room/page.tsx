@@ -39,19 +39,16 @@ export default function CreateRoom() {
         createdAt: new Date().toISOString(),
       };
 
-      // Encode room data in URL (safe for Unicode)
-      const roomData = encodeURIComponent(JSON.stringify({ room, players: [hostPlayer] }));
-      const shareUrl = `${window.location.origin}/room/${roomCode}?data=${roomData}`;
+      // Save to sessionStorage (works across tabs)
+      const roomKey = `room:${roomCode}`;
+      const roomData = { room, players: [hostPlayer] };
+      sessionStorage.setItem(roomKey, JSON.stringify(roomData));
+      
+      // Also save to localStorage as backup
+      localStorage.setItem(roomKey, JSON.stringify(roomData));
 
-      // Copy to clipboard and redirect
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert(`Το δωμάτιο δημιουργήθηκε! Το URL αντιγράφηκε:\n\n${shareUrl}\n\nΣτείλτε το στους παίκτες!`);
-      } catch {
-        alert(`Το δωμάτιο δημιουργήθηκε! Στείλτε αυτό το URL:\n\n${shareUrl}`);
-      }
-
-      window.location.href = shareUrl;
+      // Redirect to room URL (no playerId needed)
+      window.location.href = `/room/${roomCode}`;
     } catch (error) {
       console.error("Error creating room:", error);
       alert("Σφάλμα στη δημιουργία δωματίου");

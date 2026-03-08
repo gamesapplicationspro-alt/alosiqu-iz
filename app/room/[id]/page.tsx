@@ -21,63 +21,51 @@ export default function RoomPage() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [playerName, setPlayerName] = useState("");
 
-  // Load from URL data or localStorage
+  // Load from sessionStorage (works across tabs)
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
 
+    const roomKey = `room:${roomId}`;
+    
     try {
-      // Try URL data first (safe decode)
-      if (roomDataParam) {
-        const decoded = JSON.parse(decodeURIComponent(roomDataParam));
-        setRoom(decoded.room);
-        setPlayers(decoded.players);
-        
-        // Check if we already have a player in this room (from localStorage)
-        const existingPlayerId = localStorage.getItem(`currentPlayerId:${decoded.room.code}`);
-        if (existingPlayerId) {
-          const existingPlayer = decoded.players.find((p: Player) => p.id === existingPlayerId);
-          if (existingPlayer) {
-            setCurrentPlayer(existingPlayer);
-            return;
-          }
-        }
-        
-        // If no existing player, show name modal (even for host from new device)
-        setShowNameModal(true);
-        return;
+      // Try sessionStorage first (real-time sync)
+      let stored = sessionStorage.getItem(roomKey);
+      if (!stored) {
+        // Fallback to localStorage
+        stored = localStorage.getItem(roomKey);
       }
       
-      // Fallback to localStorage
-      const stored = localStorage.getItem(`room:${roomId.toUpperCase()}`);
-      if (stored) {
-        const { room: roomData, players: playersData } = JSON.parse(stored);
-        setRoom(roomData);
-        setPlayers(playersData);
-        
-        // Check if we already have a player in this room
-        const existingPlayerId = localStorage.getItem(`currentPlayerId:${roomId.toUpperCase()}`);
-        if (existingPlayerId) {
-          const player = playersData.find((p: Player) => p.id === existingPlayerId);
-          if (player) {
-            setCurrentPlayer(player);
-            return;
-          }
-        }
-        
-        // Show name modal for new players
-        setShowNameModal(true);
-      } else {
-        setLoadError("Δωμάτιο δεν βρέθηκε. Χρειάζεσαστε το πλήρες URL με τα δεδομένα.");
+      if (!stored) {
+        setLoadError("Δωμάτιο δεν βρέθηκε. Δημιούργησε νέο δωμάτιο.");
         setLoading(false);
         return;
       }
+
+      const { room: roomData, players: playersData } = JSON.parse(stored);
+      setRoom(roomData);
+      setPlayers(playersData);
+      
+      // Check if we already have a player in this room
+      const existingPlayerId = sessionStorage.getItem(`currentPlayerId:${roomId}`) || 
+                            localStorage.getItem(`currentPlayerId:${roomId}`);
+      
+      if (existingPlayerId) {
+        const player = playersData.find((p: Player) => p.id === existingPlayerId);
+        if (player) {
+          setCurrentPlayer(player);
+          return;
+        }
+      }
+
+      // Show name modal for new players
+      setShowNameModal(true);
     } catch (err) {
       console.error("Load error:", err);
-      setLoadError("Σφάλμα φόρτωσης δωματίου. Βεβαιωθείτε ότι έχετε το σωστό URL.");
+      setLoadError("Σφάλμα φόρτωσης δωματίου.");
     } finally {
       setLoading(false);
     }
-  }, [roomId, roomDataParam]);
+  }, [roomId]);
 
   // Create player from name modal
   const createPlayer = () => {
@@ -94,15 +82,28 @@ export default function RoomPage() {
     const updatedPlayers = [...players, newPlayer];
     setPlayers(updatedPlayers);
     setCurrentPlayer(newPlayer);
+    
+    // Save to both sessionStorage and localStorage
+    const roomKey = `room:${room.code}`;
+    const roomData = { room, players: updatedPlayers };
+    sessionStorage.setItem(roomKey, JSON.stringify(roomData));
+    localStorage.setItem(roomKey, JSON.stringify(roomData));
+    
+    // Save current player ID
+    sessionStorage.setItem(`currentPlayerId:${room.code}`, newPlayer.id);
+    localStorage.setItem(`currentPlayerId:${room.code}`, newPlayer.id);
+    
     setShowNameModal(false);
     setPlayerName("");
   };
 
-  // Auto-save to localStorage on changes (fallback)
+  // Auto-save to sessionStorage on changes (real-time sync)
   useEffect(() => {
     if (room && players.length > 0) {
-      const code = room.code.toUpperCase();
-      localStorage.setItem(`room:${code}`, JSON.stringify({ room, players }));
+      const roomKey = `room:${room.code}`;
+      const roomData = { room, players };
+      sessionStorage.setItem(roomKey, JSON.stringify(roomData));
+      localStorage.setItem(roomKey, JSON.stringify(roomData));
     }
   }, [room, players]);
 

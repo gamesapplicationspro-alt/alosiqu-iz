@@ -13,9 +13,17 @@ export default function JoinRoom() {
     setLoading(true);
     try {
       const code = roomCode.toUpperCase();
-      const stored = localStorage.getItem(`room:${code}`);
+      const roomKey = `room:${code}`;
+      
+      // Try sessionStorage first (real-time sync)
+      let stored = sessionStorage.getItem(roomKey);
       if (!stored) {
-        alert("Δωμάτιο δεν βρέθηκε");
+        // Fallback to localStorage
+        stored = localStorage.getItem(roomKey);
+      }
+      
+      if (!stored) {
+        alert("Δωμάτιο δεν βρέθηκε. Βεβαιωθείτε ότι ο κωδικός είναι σωστός.");
         return;
       }
 
@@ -29,8 +37,15 @@ export default function JoinRoom() {
         answers: [],
       };
 
-      players.push(newPlayer);
-      localStorage.setItem(`room:${code}`, JSON.stringify({ room, players }));
+      const updatedPlayers = [...players, newPlayer];
+      const roomData = { room, players: updatedPlayers };
+      
+      // Save to both sessionStorage and localStorage
+      sessionStorage.setItem(roomKey, JSON.stringify(roomData));
+      localStorage.setItem(roomKey, JSON.stringify(roomData));
+      
+      // Save current player ID
+      sessionStorage.setItem(`currentPlayerId:${code}`, newPlayer.id);
       localStorage.setItem(`currentPlayerId:${code}`, newPlayer.id);
 
       // Redirect to room URL
