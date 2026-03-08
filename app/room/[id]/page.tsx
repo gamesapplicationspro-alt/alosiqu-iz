@@ -26,6 +26,7 @@ export default function RoomPage() {
   const [countdownToNext, setCountdownToNext] = useState(0);
   const [showQuestionsToHost, setShowQuestionsToHost] = useState(false);
   const [hostViewMode, setHostViewMode] = useState<'participate' | 'observe'>('participate');
+  const [revealAnswer, setRevealAnswer] = useState(false);
 
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
@@ -117,6 +118,7 @@ export default function RoomPage() {
   useEffect(() => {
     if (room && room.status === "active") {
       setSelectedAnswer(null);
+      setRevealAnswer(false); // Reset answer reveal
       // Reset hasAnswered status for current player locally
       if (currentPlayer?.hasAnswered) {
         setCurrentPlayer(prev => prev ? { ...prev, hasAnswered: false } : null);
@@ -215,51 +217,57 @@ export default function RoomPage() {
       // Wait 3 seconds before moving to next question so players can see results
       setTimeout(async () => {
         setCountdownToNext(0);
+        setRevealAnswer(true); // Reveal the correct answer with animation
         
-        // Move to next question for everyone
-        if (room.currentQuestionIndex + 1 < room.questions.length) {
-          const nextQuestion = async () => {
-            try {
-              const db = await getDb();
-              const roomRef = ref(db, `rooms/${roomId}`);
-              
-              // Reset all players' hasAnswered status for next question
-              const playersRef = ref(db, "players");
-              const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
-              
-              onValue(playersQuery, (snapshot) => {
-                if (snapshot.exists()) {
-                  snapshot.forEach((child) => {
-                    update(ref(db, `players/${child.key}`), { hasAnswered: false });
-                  });
-                }
-              }, { onlyOnce: true });
+        // Wait 2 more seconds with the answer revealed, then move to next question
+        setTimeout(async () => {
+          setRevealAnswer(false);
+          
+          // Move to next question for everyone
+          if (room.currentQuestionIndex + 1 < room.questions.length) {
+            const nextQuestion = async () => {
+              try {
+                const db = await getDb();
+                const roomRef = ref(db, `rooms/${roomId}`);
+                
+                // Reset all players' hasAnswered status for next question
+                const playersRef = ref(db, "players");
+                const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
+                
+                onValue(playersQuery, (snapshot) => {
+                  if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                      update(ref(db, `players/${child.key}`), { hasAnswered: false });
+                    });
+                  }
+                }, { onlyOnce: true });
 
-              // Move to next question
-              await update(roomRef, {
-                currentQuestionIndex: room.currentQuestionIndex + 1,
-                timer: 30
-              });
-            } catch (error) {
-              console.error("Error advancing to next question:", error);
-            }
-          };
-          
-          nextQuestion();
-        } else {
-          // Game finished
-          const finishGame = async () => {
-            try {
-              const db = await getDb();
-              const roomRef = ref(db, `rooms/${roomId}`);
-              await update(roomRef, { status: "finished" });
-            } catch (error) {
-              console.error("Error finishing game:", error);
-            }
-          };
-          
-          finishGame();
-        }
+                // Move to next question
+                await update(roomRef, {
+                  currentQuestionIndex: room.currentQuestionIndex + 1,
+                  timer: 30
+                });
+              } catch (error) {
+                console.error("Error advancing to next question:", error);
+              }
+            };
+            
+            nextQuestion();
+          } else {
+            // Game finished
+            const finishGame = async () => {
+              try {
+                const db = await getDb();
+                const roomRef = ref(db, `rooms/${roomId}`);
+                await update(roomRef, { status: "finished" });
+              } catch (error) {
+                console.error("Error finishing game:", error);
+              }
+            };
+            
+            finishGame();
+          }
+        }, 2000);
       }, 3000);
       
       return;
@@ -433,7 +441,7 @@ export default function RoomPage() {
               <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
                 🎯 Παίκτες ({players.length}) 
                 <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
-                  {players.length >= 2 ? "✅ Έτοιμοι για παιχνίδι!" : `⏳ Χρειάζονται ${2 - players.length} ακόμη...`}
+                  {players.length >= 3 ? "✅ Έτοιμοι για παιχνίδι!" : `⏳ Χρειάζονται ${3 - players.length} ακόμη...`}
                 </span>
               </h2>
               
@@ -513,14 +521,14 @@ export default function RoomPage() {
                   {/* Start Game Button */}
                   <button
                     onClick={startGame}
-                    disabled={players.length < 2}
+                    disabled={players.length < 3}
                     className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
-                      players.length >= 2 
+                      players.length >= 3 
                         ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
                         : "bg-gray-400 cursor-not-allowed opacity-50"
                     }`}
                   >
-                    {players.length < 2 ? `⏳ Χρειάζονται ${2 - players.length} παίκτες` : "🚀 Ξεκίνα Παιχνίδι"}
+                    {players.length < 3 ? `⏳ Χρειάζονται ${3 - players.length} παίκτες` : "🚀 Ξεκίνα Παιχνίδι"}
                   </button>
                 </div>
               )}
@@ -596,9 +604,6 @@ export default function RoomPage() {
                         <span className="font-bold text-purple-900 dark:text-purple-100">
                           {String.fromCharCode(65 + idx)}. {answer.text}
                         </span>
-                        {answer.id === currentQuestion.correctAnswerId && (
-                          <span className="ml-2 text-green-600 font-bold">✓ ΣΩΣΤΟ</span>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -669,9 +674,9 @@ export default function RoomPage() {
                         return (
                           <div 
                             key={idx}
-                            className={`p-3 rounded-lg text-left ${
-                              isCorrect 
-                                ? "bg-green-500 text-white" 
+                            className={`p-3 rounded-lg text-left transform transition-all duration-500 ${
+                              isCorrect && revealAnswer
+                                ? "bg-green-500 text-white scale-105 shadow-lg animate-pulse" 
                                 : wasSelected 
                                 ? "bg-red-500 text-white" 
                                 : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
@@ -682,7 +687,7 @@ export default function RoomPage() {
                                 {String.fromCharCode(65 + idx)}. {answer.text}
                               </span>
                               <span className="text-2xl font-bold">
-                                {isCorrect ? "✓ ΣΩΣΤΟ" : wasSelected ? "✗ ΛΑΘΟΣ" : ""}
+                                {isCorrect && revealAnswer ? "✓ ΣΩΣΤΟ" : wasSelected ? "✗ ΛΑΘΟΣ" : ""}
                               </span>
                             </div>
                           </div>
