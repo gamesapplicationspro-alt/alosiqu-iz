@@ -1,58 +1,62 @@
 "use client";
 
 import React, { useState } from "react";
+import { query, orderByChild, equalTo, get, ref, set, push } from "firebase/database";
+import { getDb } from "@/lib/firebase";
 import { Room, Player } from "@/types";
 
 export default function JoinRoom() {
   const [roomCode, setRoomCode] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const joinRoom = async () => {
     if (!roomCode || !playerName) return;
     setLoading(true);
+    setError(null);
+    
     try {
-      const code = roomCode.toUpperCase();
-      const roomKey = `room:${code}`;
+      const db = await getDb();
       
-      // Try sessionStorage first (real-time sync)
-      let stored = sessionStorage.getItem(roomKey);
-      if (!stored) {
-        // Fallback to localStorage
-        stored = localStorage.getItem(roomKey);
+      // Query rooms by code
+      const roomsRef = ref(db, "rooms");
+      const roomsQuery = query(roomsRef, orderByChild("code"), equalTo(roomCode.toUpperCase()));
+      const snapshot = await get(roomsQuery);
+      
+      if (snapshot.exists()) {
+        // Get the room ID from the snapshot key
+        const roomData = snapshot.val();
+        const roomId = Object.keys(roomData)[0];
+        if (!roomId) throw new Error("Room id not found from query result");
+
+        // Create player
+        const playerRef = push(ref(db, "players"));
+        if (!playerRef.key) throw new Error("Unable to create player id");
+        const playerId = playerRef.key;
+
+        await set(playerRef, {
+          name: playerName,
+          score: 0,
+          roomId,
+          answers: [],
+        });
+
+        // Save to localStorage as backup
+        try {
+          localStorage.setItem(`roomPlayerId:${roomId}`, playerId);
+        } catch {
+          // ignore localStorage errors
+        }
+
+        // Redirect to room page
+        window.location.href = `/room/${roomId}?playerId=${encodeURIComponent(playerId)}`;
+      } else {
+        setError("Δωμάτιο δεν βρέθηκε. Βεβαιωθήτε ότι ο κωδικός είναι σωστός.");
       }
-      
-      if (!stored) {
-        alert("Δωμάτιο δεν βρέθηκε. Βεβαιωθείτε ότι ο κωδικός είναι σωστός.");
-        return;
-      }
-
-      const { room, players } = JSON.parse(stored);
-
-      const newPlayer: Player = {
-        id: "player-" + Math.random().toString(36).substring(2, 9),
-        name: playerName,
-        score: 0,
-        roomId: room.id,
-        answers: [],
-      };
-
-      const updatedPlayers = [...players, newPlayer];
-      const roomData = { room, players: updatedPlayers };
-      
-      // Save to both sessionStorage and localStorage
-      sessionStorage.setItem(roomKey, JSON.stringify(roomData));
-      localStorage.setItem(roomKey, JSON.stringify(roomData));
-      
-      // Save current player ID
-      sessionStorage.setItem(`currentPlayerId:${code}`, newPlayer.id);
-      localStorage.setItem(`currentPlayerId:${code}`, newPlayer.id);
-
-      // Redirect to room URL
-      window.location.href = `/room/${code}`;
     } catch (error) {
       console.error("Error joining room:", error);
-      alert(`Σφάλμα στην είσοδο: ${error instanceof Error ? error.message : String(error)}`);
+      setError(error instanceof Error ? error.message : "Unknown error occurred");
     } finally {
       setLoading(false);
     }
@@ -78,6 +82,14 @@ export default function JoinRoom() {
           maxLength={6}
           autoFocus
         />
+        {error && (
+          <div className="w-full p-4 mb-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <p className="font-semibold">Σφάλμα:</p>
+            <p>{error}</p>
+            <p className="text-sm mt-2">Βεβαιωθήτε ότι έχετε σωστή ρύθμιση Firebase στο Vercel.</p>
+          </div>
+        )}
+        
         <button
           onClick={joinRoom}
           disabled={!roomCode || !playerName || loading}

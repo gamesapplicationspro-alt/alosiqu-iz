@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { ref, onValue, query, orderByChild, equalTo, update, off } from "firebase/database";
+import { getDb } from "@/lib/firebase";
 import { Room, Player, Question } from "@/types";
 
 export default function RoomPage() {
@@ -9,7 +11,8 @@ export default function RoomPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomId = params.id as string;
-  const roomDataParam = searchParams.get("data");
+  const playerId = searchParams.get("playerId") || undefined;
+  const playerName = searchParams.get("name") || "Anonymous";
 
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -19,71 +22,88 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
-  const [playerName, setPlayerName] = useState("");
+  const [playerNameInput, setPlayerNameInput] = useState("");
 
-  // Load from sessionStorage (works across tabs)
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
+    if (!playerId) return;
 
-    const roomKey = `room:${roomId}`;
-    
-    try {
-      // Try sessionStorage first (real-time sync)
-      let stored = sessionStorage.getItem(roomKey);
-      if (!stored) {
-        // Fallback to localStorage
-        stored = localStorage.getItem(roomKey);
-      }
-      
-      if (!stored) {
-        setLoadError("Δωμάτιο δεν βρέθηκε. Δημιούργησε νέο δωμάτιο.");
+    let db;
+    let roomUnsubscribe: (() => void) | null = null;
+    let playersUnsubscribe: (() => void) | null = null;
+
+    const setupListeners = async () => {
+      try {
+        db = await getDb();
+        
+        // Listen to room changes with error handling
+        const roomRef = ref(db, `rooms/${roomId}`);
+        roomUnsubscribe = onValue(
+          roomRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const roomData = snapshot.val();
+              setRoom({ id: snapshot.key!, ...roomData } as Room);
+              setTimeLeft(roomData.timer || 30);
+            } else {
+              setLoadError("Δωμάτιο δεν βρέθηκε. Μπορεί να έχει διαγραφεί.");
+            }
+            setLoading(false);
+          },
+          (error: any) => {
+            console.error("Room listener error:", error);
+            setLoadError(`Σφάλμα φόρτωσης δωματίου: ${error.message || error}`);
+            setLoading(false);
+          }
+        );
+
+        // Listen to players in room using query with error handling
+        const playersRef = ref(db, "players");
+        const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
+        playersUnsubscribe = onValue(
+          playersQuery,
+          (snapshot) => {
+            const playersData: Player[] = [];
+            if (snapshot.exists()) {
+              snapshot.forEach((child) => {
+                playersData.push({ id: child.key!, ...child.val() } as Player);
+              });
+            }
+            setPlayers(playersData);
+
+            if (playerId) {
+              const player = playersData.find((p) => p.id === playerId);
+              if (player) setCurrentPlayer(player);
+            }
+          },
+          (error: any) => {
+            console.error("Players listener error:", error);
+            setLoadError(`Σφάλμα φόρτωσης παικτών: ${error.message || error}`);
+            setLoading(false);
+          }
+        );
+      } catch (error: any) {
+        console.error("Setup error:", error);
+        setLoadError(`Σφάλμα αρχικοποίησης: ${error.message || error}`);
         setLoading(false);
-        return;
       }
+    };
 
-      const { room: roomData, players: playersData } = JSON.parse(stored);
-      setRoom(roomData);
-      setPlayers(playersData);
-      
-      // Check if we already have a player in this room
-      const existingPlayerId = sessionStorage.getItem(`currentPlayerId:${roomId}`) || 
-                            localStorage.getItem(`currentPlayerId:${roomId}`);
-      
-      if (existingPlayerId) {
-        const player = playersData.find((p: Player) => p.id === existingPlayerId);
-        if (player) {
-          setCurrentPlayer(player);
-          return;
-        }
-      }
+    setupListeners();
 
-      // Check if there's already a host in this room
-      const host = playersData.find((p: Player) => p.isHost);
-      if (host) {
-        // Auto-login as host (don't show modal)
-        setCurrentPlayer(host);
-        sessionStorage.setItem(`currentPlayerId:${roomId}`, host.id);
-        localStorage.setItem(`currentPlayerId:${roomId}`, host.id);
-        return;
-      }
-
-      // Show name modal for new players only
-      setShowNameModal(true);
-    } catch (err) {
-      console.error("Load error:", err);
-      setLoadError("Σφάλμα φόρτωσης δωματίου.");
-    } finally {
-      setLoading(false);
-    }
-  }, [roomId]);
+    return () => {
+      if (roomUnsubscribe) roomUnsubscribe();
+      if (playersUnsubscribe) playersUnsubscribe();
+    };
+  }, [roomId, playerId]);
 
   // Create player from name modal
   const createPlayer = () => {
-    if (!playerName.trim() || !room) return;
+    if (!playerNameInput.trim() || !room) return;
 
     const newPlayer: Player = {
       id: "player-" + Math.random().toString(36).substring(2, 9),
-      name: playerName.trim(),
+      name: playerNameInput.trim(),
       score: 0,
       roomId: room.id,
       answers: [],
@@ -104,7 +124,7 @@ export default function RoomPage() {
     localStorage.setItem(`currentPlayerId:${room.code}`, newPlayer.id);
     
     setShowNameModal(false);
-    setPlayerName("");
+    setPlayerNameInput("");
   };
 
   // Auto-save to sessionStorage on changes (real-time sync)
@@ -206,8 +226,8 @@ export default function RoomPage() {
             <h2 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">Δώσε το όνομά σου</h2>
             <input
               type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
+              value={playerNameInput}
+              onChange={(e) => setPlayerNameInput(e.target.value)}
               placeholder="Όνομα παίκτη"
               className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
               autoFocus
@@ -215,7 +235,7 @@ export default function RoomPage() {
             />
             <button
               onClick={createPlayer}
-              disabled={!playerName.trim()}
+              disabled={!playerNameInput.trim()}
               className="w-full rounded-lg bg-amber-600 px-4 py-3 text-white font-semibold hover:bg-amber-700 disabled:opacity-50"
             >
               Είσοδος

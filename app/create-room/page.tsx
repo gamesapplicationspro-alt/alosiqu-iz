@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
+import { ref, set, push } from "firebase/database";
+import { getDb } from "@/lib/firebase";
 import { QUESTIONS } from "@/lib/questions";
 import { Room, Player } from "@/types";
 
 export default function CreateRoom() {
   const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generateCode = () => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -16,22 +19,33 @@ export default function CreateRoom() {
   const createRoom = async () => {
     if (!roomCode) return;
     setLoading(true);
+    setError(null);
+    
     try {
+      const db = await getDb();
       const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
 
-      const hostPlayer: Player = {
-        id: "host-" + Math.random().toString(36).substring(2, 9),
-        name: "Host",
-        score: 0,
-        roomId: roomCode,
-        answers: [],
-        isHost: true,
-      };
+      // Create a new room with auto-generated ID using push
+      const roomRef = push(ref(db, "rooms"));
+      if (!roomRef.key) throw new Error("Unable to create room id");
+      const roomId = roomRef.key;
 
-      const room: Room = {
-        id: roomCode,
+      // Create host player and store the player id inside the room
+      const hostPlayerRef = push(ref(db, "players"));
+      if (!hostPlayerRef.key) throw new Error("Unable to create host player id");
+      const hostPlayerId = hostPlayerRef.key;
+
+      await set(hostPlayerRef, {
+        name: "Host",
+        isHost: true,
+        score: 0,
+        roomId,
+        answers: [],
+      });
+
+      const room: Omit<Room, "id"> = {
         code: roomCode,
-        hostId: hostPlayer.id,
+        hostId: hostPlayerId,
         questions: shuffledQuestions,
         currentQuestionIndex: 0,
         status: "waiting",
@@ -39,19 +53,20 @@ export default function CreateRoom() {
         createdAt: new Date().toISOString(),
       };
 
-      // Save to sessionStorage (works across tabs)
-      const roomKey = `room:${roomCode}`;
-      const roomData = { room, players: [hostPlayer] };
-      sessionStorage.setItem(roomKey, JSON.stringify(roomData));
-      
-      // Also save to localStorage as backup
-      localStorage.setItem(roomKey, JSON.stringify(roomData));
+      await set(roomRef, room);
 
-      // Redirect to room URL (no playerId needed)
-      window.location.href = `/room/${roomCode}`;
+      // Save to localStorage as backup
+      try {
+        localStorage.setItem(`roomPlayerId:${roomId}`, hostPlayerId);
+      } catch {
+        // ignore localStorage errors
+      }
+
+      // Redirect to room page
+      window.location.href = `/room/${roomId}?playerId=${encodeURIComponent(hostPlayerId)}`;
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("Σφάλμα στη δημιουργία δωματίου");
+      setError(error instanceof Error ? error.message : "Unknown error occurred");
     } finally {
       setLoading(false);
     }
@@ -77,6 +92,14 @@ export default function CreateRoom() {
           className="w-full border-2 border-amber-600 p-3 rounded-md mb-6 text-center text-lg font-mono bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
           maxLength={6}
         />
+        {error && (
+          <div className="w-full p-4 mb-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <p className="font-semibold">Σφάλμα:</p>
+            <p>{error}</p>
+            <p className="text-sm mt-2">Βεβαιωθήτε ότι έχετε σωστή ρύθμιση Firebase στο Vercel.</p>
+          </div>
+        )}
+        
         <button
           onClick={createRoom}
           disabled={!roomCode || loading}
