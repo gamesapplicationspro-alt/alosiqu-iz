@@ -85,9 +85,7 @@ export default function RoomPage() {
             if (playerId) {
               const player = playersData.find((p) => p.id === playerId);
               if (player) {
-                // Check if this player is the host by comparing with room's hostId
-                const isHost = room?.hostId === player.id || player.isHost;
-                setCurrentPlayer({ ...player, isHost });
+                setCurrentPlayer(player);
               }
             }
           },
@@ -111,6 +109,24 @@ export default function RoomPage() {
       if (playersUnsubscribe) playersUnsubscribe();
     };
   }, [roomId, playerId]);
+
+  // Effect to handle host detection when room and players are available
+  useEffect(() => {
+    if (room && players.length > 0 && playerId) {
+      const player = players.find((p) => p.id === playerId);
+      if (player) {
+        const isHost = room.hostId === player.id || player.isHost;
+        console.log("Host detection:", { 
+          playerId, 
+          roomHostId: room.hostId, 
+          playerIsHost: player.isHost, 
+          finalIsHost: isHost,
+          playerName: player.name 
+        });
+        setCurrentPlayer(prev => prev ? { ...prev, isHost } : null);
+      }
+    }
+  }, [room, players, playerId]);
 
   // Create player from name modal
   const createPlayer = () => {
@@ -327,6 +343,14 @@ export default function RoomPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+            {/* Debug info - remove later */}
+            <div className="mb-4 p-2 bg-gray-100 text-xs">
+              Debug: Room Status: {room.status} | 
+              Current Player: {currentPlayer?.name} | 
+              Is Host: {currentPlayer?.isHost ? "YES" : "NO"} |
+              Player ID: {currentPlayer?.id} |
+              Room Host ID: {room.hostId}
             </div>
             {currentPlayer?.isHost && (
               <button
