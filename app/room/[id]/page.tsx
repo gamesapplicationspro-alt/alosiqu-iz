@@ -24,6 +24,7 @@ export default function RoomPage() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState("");
   const [countdownToNext, setCountdownToNext] = useState(0);
+  const [showQuestionsToHost, setShowQuestionsToHost] = useState(false);
 
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
@@ -412,27 +413,134 @@ export default function RoomPage() {
 
       <div className="flex-1 p-4 lg:p-8">
         {room.status === "waiting" && (
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-4 text-amber-900 dark:text-amber-100">Αναμονή παικτών</h1>
-            <p className="mb-6 text-amber-800 dark:text-amber-200">Κωδικός δωματίου: <span className="font-mono text-2xl">{room.code}</span></p>
-            <div className="mb-6">
-              <h2 className="text-xl mb-4 text-amber-900 dark:text-amber-100">Παίκτες ({players.length})</h2>
-              <ul className="space-y-2 max-w-sm mx-auto">
-                {players.map((p) => (
-                  <li key={p.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow flex justify-between items-center">
-                    <span>{p.name}</span>
-                    {p.isHost && <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded">Host</span>}
-                  </li>
-                ))}
-              </ul>
+          <div className="animate-fade-in">
+            {/* Animated Header */}
+            <div className="text-center mb-8">
+              <div className="inline-block">
+                <h1 className="text-4xl font-bold mb-4 text-amber-900 dark:text-amber-100 animate-pulse">
+                  🎮 Αναμονή Παικτών
+                </h1>
+                <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-8 py-4 inline-block shadow-lg transform hover:scale-105 transition-all">
+                  <div className="text-sm font-bold mb-1">Κωδικός Δωματίου</div>
+                  <div className="text-3xl font-mono font-bold">{room.code}</div>
+                </div>
+              </div>
             </div>
-            {currentPlayer?.isHost && (
-              <button
-                onClick={startGame}
-                className="rounded-lg bg-green-600 px-6 py-3 text-white font-semibold hover:bg-green-700"
-              >
-                Ξεκίνα Παιχνίδι
-              </button>
+
+            {/* Players Grid with Animations */}
+            <div className="mb-8">
+              <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
+                🎯 Παίκτες ({players.length}) 
+                <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
+                  {players.length >= 2 ? "✅ Έτοιμοι για παιχνίδι!" : `⏳ Χρειάζονται ${2 - players.length} ακόμη...`}
+                </span>
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                {players.map((p, idx) => (
+                  <div 
+                    key={p.id} 
+                    className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up"
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-bold text-amber-900 dark:text-amber-100">{p.name}</div>
+                          {p.isHost && (
+                            <div className="text-xs bg-purple-600 text-white px-2 py-1 rounded-full inline-block mt-1 animate-glow">
+                              👑 HOST
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-2xl animate-bounce" style={{ animationDelay: `${idx * 200}ms` }}>
+                        {p.isHost ? "👑" : "🎮"}
+                      </div>
+                    </div>
+                    <div className="bg-amber-100 dark:bg-amber-900 rounded-lg p-2 text-center">
+                      <div className="text-xs text-amber-700 dark:text-amber-300">Κατάσταση</div>
+                      <div className="text-sm font-bold text-amber-900 dark:text-amber-100 animate-pulse">
+                        {p.isHost ? "Έτοιμος" : "Αναμονή"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Host Controls */}
+            <div className="text-center">
+              {currentPlayer?.isHost && (
+                <div className="space-y-4">
+                  {/* Toggle Questions Preview */}
+                  <button
+                    onClick={() => setShowQuestionsToHost(!showQuestionsToHost)}
+                    className="rounded-lg bg-purple-600 px-6 py-3 text-white font-semibold hover:bg-purple-700 transform hover:scale-105 transition-all shadow-lg mr-4"
+                  >
+                    {showQuestionsToHost ? "🙈 Απόκρυψε Ερωτήσεις" : "👁️ Δες Ερωτήσεις"}
+                  </button>
+                  
+                  {/* Start Game Button */}
+                  <button
+                    onClick={startGame}
+                    disabled={players.length < 2}
+                    className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
+                      players.length >= 2 
+                        ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
+                        : "bg-gray-400 cursor-not-allowed opacity-50"
+                    }`}
+                  >
+                    {players.length < 2 ? `⏳ Χρειάζονται ${2 - players.length} παίκτες` : "🚀 Ξεκίνα Παιχνίδι"}
+                  </button>
+                </div>
+              )}
+
+              {/* Non-host message */}
+              {!currentPlayer?.isHost && (
+                <div className="bg-amber-100 dark:bg-amber-900 rounded-lg p-6 max-w-md mx-auto animate-pulse">
+                  <div className="text-amber-900 dark:text-amber-100 font-bold text-lg">
+                    ⏳ Αναμονή Host...
+                  </div>
+                  <div className="text-amber-700 dark:text-amber-300 mt-2">
+                    Ο host θα ξεκινήσει το παιχνίδι όταν είστε έτοιμοι!
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Questions Preview for Host */}
+            {showQuestionsToHost && currentPlayer?.isHost && (
+              <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl animate-fade-in">
+                <h3 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">
+                  📋 Προεπισκόπηση Ερωτήσεων ({room.questions.length})
+                </h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {room.questions.map((q, idx) => (
+                    <div 
+                      key={q.id}
+                      className="bg-amber-50 dark:bg-amber-900 rounded-lg p-4 border-l-4 border-amber-600"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-bold text-amber-900 dark:text-amber-100 mb-1">
+                            Ερώτηση {idx + 1}: {q.text.substring(0, 50)}...
+                          </div>
+                          <div className="text-sm text-amber-700 dark:text-amber-300">
+                            {q.answers.length} απαντήσεις
+                          </div>
+                        </div>
+                        <div className="text-2xl ml-3">
+                          {idx === 0 ? "❓" : idx === 1 ? "🤔" : idx === 2 ? "💭" : "🧠"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
