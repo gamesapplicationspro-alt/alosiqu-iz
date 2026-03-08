@@ -217,7 +217,9 @@ export default function RoomPage() {
     );
   }
 
-  const currentQuestion = room.questions[room.currentQuestionIndex];
+  const currentQuestion = room && room.questions && room.currentQuestionIndex < room.questions.length 
+    ? room.questions[room.currentQuestionIndex] 
+    : null;
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900">
