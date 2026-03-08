@@ -156,6 +156,8 @@ export default function RoomPage() {
     if (!room || !currentPlayer || selectedAnswer === null) return;
 
     const question = room.questions[room.currentQuestionIndex];
+    if (!question || !question.answers) return;
+    
     const selectedAnswerObj = question.answers[selectedAnswer];
     const correct = selectedAnswerObj.id === question.correctAnswerId;
     const points = correct ? Math.max(10, timeLeft) : 0;
@@ -271,7 +273,7 @@ export default function RoomPage() {
           </div>
         )}
 
-        {room.status === "active" && currentQuestion && (
+        {room.status === "active" && currentQuestion && currentQuestion.answers && (
           <div>
             <div className="mb-4 text-center">
               <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">⏱ {timeLeft}s</span>
