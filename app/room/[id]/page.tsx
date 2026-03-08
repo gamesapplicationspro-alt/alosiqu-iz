@@ -110,6 +110,17 @@ export default function RoomPage() {
     };
   }, [roomId, playerId]);
 
+  // Auto-submit when answer is selected
+  useEffect(() => {
+    if (selectedAnswer !== null && !currentPlayer?.hasAnswered) {
+      const timer = setTimeout(() => {
+        submitAnswer();
+      }, 500); // Small delay for visual feedback
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedAnswer, currentPlayer?.hasAnswered]);
+
   // Effect to handle host detection when room and players are available
   useEffect(() => {
     if (room && players.length > 0 && playerId) {
@@ -399,33 +410,41 @@ export default function RoomPage() {
             ) : (
               <>
                 <div className="space-y-3">
-                  {currentQuestion.answers.map((answer, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedAnswer(idx)}
-                      disabled={selectedAnswer !== null}
-                      className={`w-full p-4 text-left rounded-lg transition-all ${
-                        selectedAnswer === idx
-                          ? "bg-blue-600 text-white"
-                          : selectedAnswer !== null && answer.id === currentQuestion.correctAnswerId
-                          ? "bg-green-600 text-white"
-                          : selectedAnswer !== null && answer.id !== currentQuestion.correctAnswerId
-                          ? "bg-red-600 text-white"
-                          : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      {answer.text}
-                    </button>
-                  ))}
+                  {currentQuestion.answers.map((answer, idx) => {
+                    const isSelected = selectedAnswer === idx;
+                    const isCorrect = answer.id === currentQuestion.correctAnswerId;
+                    const showResult = selectedAnswer !== null;
+                    
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => !isSelected && setSelectedAnswer(idx)}
+                        disabled={selectedAnswer !== null}
+                        className={`w-full p-4 text-left rounded-lg transition-all transform ${
+                          showResult && isSelected
+                            ? isCorrect 
+                              ? "bg-green-600 text-white scale-105 animate-pulse shadow-lg"
+                              : "bg-red-600 text-white scale-95 animate-bounce"
+                            : showResult && isCorrect
+                            ? "bg-green-500 text-white scale-105 animate-pulse"
+                            : "bg-white dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700 hover:scale-102"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span>{answer.text}</span>
+                          {showResult && isSelected && (
+                            <span className="text-2xl">
+                              {isCorrect ? "✓" : "✗"}
+                            </span>
+                          )}
+                          {showResult && !isSelected && isCorrect && (
+                            <span className="text-2xl">✓</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-                {selectedAnswer !== null && (
-                  <button
-                    onClick={submitAnswer}
-                    className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700"
-                  >
-                    Υποβολή
-                  </button>
-                )}
               </>
             )}
           </div>
