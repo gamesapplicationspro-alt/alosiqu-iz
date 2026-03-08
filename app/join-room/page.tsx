@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ref, query, orderByChild, equalTo, get } from "firebase/database";
+import { ref, query, orderByChild, equalTo, get, push, set } from "firebase/database";
 import { getDb } from "@/lib/firebase";
 
 export default function JoinRoom() {
@@ -23,14 +23,28 @@ export default function JoinRoom() {
         // Get the room ID from the snapshot key
         const roomData = snapshot.val();
         const roomId = Object.keys(roomData)[0];
-        // Redirect to room page with player name
-        window.location.href = `/room/${roomId}?name=${encodeURIComponent(playerName)}`;
+        if (!roomId) throw new Error("Room id not found from query result");
+
+        // Create player
+        const playerRef = push(ref(db, "players"));
+        if (!playerRef.key) throw new Error("Unable to create player id");
+        const playerId = playerRef.key;
+
+        await set(playerRef, {
+          name: playerName,
+          score: 0,
+          roomId,
+          answers: [],
+        });
+
+        // Redirect to room page
+        window.location.href = `/room/${roomId}?playerId=${encodeURIComponent(playerId)}`;
       } else {
         alert("Δωμάτιο δεν βρέθηκε");
       }
     } catch (error) {
       console.error("Error joining room:", error);
-      alert("Σφάλμα στην είσοδο");
+      alert(`Σφάλμα στην είσοδο: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }

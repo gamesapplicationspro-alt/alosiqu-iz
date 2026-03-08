@@ -24,6 +24,7 @@ export interface Room {
 export interface Player {
   id: string;
   name: string;
+  isHost?: boolean;
   score: number;
   roomId: string;
   answers: { questionId: string; answerId: string; time: number }[];

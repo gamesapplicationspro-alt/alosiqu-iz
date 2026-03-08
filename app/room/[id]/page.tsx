@@ -10,7 +10,7 @@ import ErrorBoundary from "@/quiz/components/ErrorBoundary";
 
 interface RoomPageProps {
   params: { id: string };
-  searchParams: { name?: string };
+  searchParams: { name?: string; playerId?: string };
 }
 
 export default function RoomPage({ params, searchParams }: RoomPageProps) {
@@ -22,6 +22,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [loading, setLoading] = useState(true);
 
   const roomId = params.id;
+  const playerId = searchParams.playerId;
   const playerName = searchParams.name || "Anonymous";
 
   useEffect(() => {
@@ -60,36 +61,27 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
         });
       }
       setPlayers(playersData);
-      const player = playersData.find(p => p.name === playerName);
-      if (player) setCurrentPlayer(player);
+
+      if (playerId) {
+        const player = playersData.find((p) => p.id === playerId);
+        if (player) setCurrentPlayer(player);
+      }
     });
 
     return () => {
       unsubscribeRoom();
       unsubscribePlayers();
     };
-  }, [roomId, playerName]);
+  }, [roomId, playerId]);
 
   useEffect(() => {
-    // Add player if not exists
-    if (room && !currentPlayer) {
-      let db;
-      try {
-        db = getDb();
-      } catch (err) {
-        console.error("Unable to initialize Firebase:", err);
-        return;
-      }
-      const newPlayerRef = push(ref(db, "players"));
-      const newPlayer: Omit<Player, 'id'> = {
-        name: playerName,
-        score: 0,
-        roomId,
-        answers: [],
-      };
-      set(newPlayerRef, newPlayer);
-    }
-  }, [room, currentPlayer, playerName, roomId]);
+    if (!room) return;
+    if (playerId && currentPlayer) return;
+
+    // If someone opened the room URL without playerId, don't crash.
+    // We keep the page usable (they can re-join properly from /join-room).
+    if (!playerId) return;
+  }, [room, playerId, currentPlayer]);
 
   useEffect(() => {
     // Timer countdown

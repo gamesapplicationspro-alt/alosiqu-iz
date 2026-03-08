@@ -21,22 +21,39 @@ export default function CreateRoom() {
     try {
       const db = getDb();
       const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
-      const room: Omit<Room, 'id'> = {
+
+      // Create a new room with auto-generated ID using push
+      const roomRef = push(ref(db, "rooms"));
+      if (!roomRef.key) throw new Error("Unable to create room id");
+      const roomId = roomRef.key;
+
+      // Create host player and store the player id inside the room
+      const hostPlayerRef = push(ref(db, "players"));
+      if (!hostPlayerRef.key) throw new Error("Unable to create host player id");
+      const hostPlayerId = hostPlayerRef.key;
+
+      await set(hostPlayerRef, {
+        name: "Host",
+        isHost: true,
+        score: 0,
+        roomId,
+        answers: [],
+      });
+
+      const room: Omit<Room, "id"> = {
         code: roomCode,
-        hostId: "host-" + Date.now(),
+        hostId: hostPlayerId,
         questions: shuffledQuestions,
         currentQuestionIndex: 0,
-        status: 'waiting',
+        status: "waiting",
         timer: 30,
         createdAt: new Date().toISOString(),
       };
-      
-      // Create a new room with auto-generated ID using push
-      const roomRef = push(ref(db, "rooms"));
+
       await set(roomRef, room);
-      
+
       // Redirect to room page
-      window.location.href = `/room/${roomRef.key}`;
+      window.location.href = `/room/${roomId}?playerId=${encodeURIComponent(hostPlayerId)}`;
     } catch (error) {
       console.error("Error creating room:", error);
       alert("Σφάλμα στη δημιουργία δωματίου");
