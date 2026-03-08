@@ -453,6 +453,11 @@ export default function RoomPage() {
                       : `⏳ Χρειάζονται ${2 - eligiblePlayers.length} ακόμη...`;
                   })()}
                 </span>
+                <span className="text-sm text-amber-600 dark:text-amber-400 ml-2">
+                  {hostViewMode === 'observe' && currentPlayer?.isHost 
+                    ? '(Host observe)' 
+                    : ''}
+                </span>
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
@@ -855,44 +860,51 @@ export default function RoomPage() {
           </div>
           
           <div className="space-y-3">
-            {players
-              .sort((a, b) => b.score - a.score)
-              .map((p, idx) => (
-                <div 
-                  key={p.id} 
-                  className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-                    idx === 0 
-                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
-                      : idx === 1 
-                      ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
-                      : idx === 2 
-                      ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
-                      : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <span className="text-xl mr-2 font-bold">
-                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
-                      </span>
-                      <div>
-                        <span className="font-bold">{p.name}</span>
-                        {p.isHost && (
-                          <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                            👑
-                          </span>
-                        )}
-                        {p.hasAnswered && room.status === 'active' && (
-                          <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
-                            ✓
-                          </span>
-                        )}
+            {(() => {
+              // Filter players based on host mode
+              const leaderboardPlayers = players.filter(p => 
+                !(p.isHost && hostViewMode === 'observe')
+              );
+              
+              return leaderboardPlayers
+                .sort((a, b) => b.score - a.score)
+                .map((p, idx) => (
+                  <div 
+                    key={p.id} 
+                    className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                      idx === 0 
+                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
+                        : idx === 1 
+                        ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
+                        : idx === 2 
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
+                        : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className="text-xl mr-2 font-bold">
+                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                        </span>
+                        <div>
+                          <span className="font-bold">{p.name}</span>
+                          {p.isHost && hostViewMode === 'participate' && (
+                            <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                              👑
+                            </span>
+                          )}
+                          {p.hasAnswered && room.status === 'active' && (
+                            <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                              ✓
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <span className="font-bold text-lg">{p.score}</span>
                     </div>
-                    <span className="font-bold text-lg">{p.score}</span>
                   </div>
-                </div>
-              ))}
+                ));
+            })()}
           </div>
           
           {/* Game Status Indicator */}
