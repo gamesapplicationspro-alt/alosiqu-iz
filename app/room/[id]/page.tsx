@@ -110,16 +110,16 @@ export default function RoomPage() {
     };
   }, [roomId, playerId]);
 
-  // Auto-submit when answer is selected
+  // Reset selectedAnswer and hasAnswered when question changes
   useEffect(() => {
-    if (selectedAnswer !== null && !currentPlayer?.hasAnswered) {
-      const timer = setTimeout(() => {
-        submitAnswer();
-      }, 500); // Small delay for visual feedback
-      
-      return () => clearTimeout(timer);
+    if (room && room.status === "active") {
+      setSelectedAnswer(null);
+      // Reset hasAnswered status for current player locally
+      if (currentPlayer?.hasAnswered) {
+        setCurrentPlayer(prev => prev ? { ...prev, hasAnswered: false } : null);
+      }
     }
-  }, [selectedAnswer, currentPlayer?.hasAnswered]);
+  }, [room?.currentQuestionIndex]);
 
   // Effect to handle host detection when room and players are available
   useEffect(() => {
@@ -300,7 +300,7 @@ export default function RoomPage() {
       // Update local state
       setCurrentPlayer(updatedPlayer);
       setPlayers(prev => prev.map(p => p.id === currentPlayer.id ? updatedPlayer : p));
-      setSelectedAnswer(null);
+      // Don't reset selectedAnswer - keep it to show the results
 
     } catch (error) {
       console.error("Error saving player data:", error);
@@ -445,6 +445,19 @@ export default function RoomPage() {
                     );
                   })}
                 </div>
+                {selectedAnswer !== null && !currentPlayer?.hasAnswered && (
+                  <button
+                    onClick={submitAnswer}
+                    className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 animate-bounce"
+                  >
+                    Υποβολή
+                  </button>
+                )}
+                {currentPlayer?.hasAnswered && (
+                  <div className="mt-6 text-center text-green-700 dark:text-green-300 font-semibold">
+                    ✓ Η απάντησή σου καταχωρήθηκε - Περίμενε την επόμενη ερώτηση
+                  </div>
+                )}
               </>
             )}
           </div>
