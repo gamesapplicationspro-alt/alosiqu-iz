@@ -20,10 +20,22 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const roomId = params.id;
   const playerId = searchParams.playerId;
   const playerName = searchParams.name || "Anonymous";
+
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => {
+      setLoading(false);
+      setLoadError((prev) =>
+        prev || "Η φόρτωση καθυστέρησε πολύ. Έλεγξε Firebase RTDB Rules (indexes .indexOn) και Vercel env vars."
+      );
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
@@ -33,6 +45,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       db = getDb();
     } catch (err) {
       console.error("Unable to initialize Firebase:", err);
+      setLoadError("Λείπουν Firebase env vars στο Vercel ή στο .env.local");
       setLoading(false);
       return;
     }
@@ -53,8 +66,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       },
       (err) => {
         console.error("Room listener error:", err);
-        alert("Σφάλμα φόρτωσης δωματίου. Έλεγξε Firebase Rules + indexes (.indexOn)."
-        );
+        setLoadError("Σφάλμα φόρτωσης δωματίου. Έλεγξε Firebase Rules + indexes (.indexOn). ");
         setLoading(false);
       }
     );
@@ -80,8 +92,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       },
       (err) => {
         console.error("Players listener error:", err);
-        alert("Σφάλμα φόρτωσης παικτών. Έλεγξε Firebase Rules + indexes (.indexOn)."
-        );
+        setLoadError("Σφάλμα φόρτωσης παικτών. Έλεγξε Firebase Rules + indexes (.indexOn). ");
         setLoading(false);
       }
     );
@@ -155,6 +166,21 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   };
 
   if (loading) return <div className="flex justify-center items-center min-h-screen">Φόρτωση...</div>;
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen p-6 text-center">
+        <div className="max-w-xl">
+          <h1 className="text-2xl font-bold mb-3">Δεν μπόρεσε να φορτώσει το δωμάτιο</h1>
+          <p className="mb-3">{loadError}</p>
+          <p className="opacity-80 mb-1">roomId: {roomId}</p>
+          <p className="opacity-80 mb-6">playerId: {playerId || "(λείπει)"}</p>
+          <a className="underline" href="/join-room">Πήγαινε στο Join Room</a>
+        </div>
+      </div>
+    );
+  }
+
   if (!room) return <div>Δωμάτιο δεν βρέθηκε</div>;
 
   const currentQuestion = room.questions[room.currentQuestionIndex];
