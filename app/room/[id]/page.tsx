@@ -39,34 +39,52 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
 
     // Listen to room changes
     const roomRef = ref(db, `rooms/${roomId}`);
-    const unsubscribeRoom = onValue(roomRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const roomData = snapshot.val();
-        setRoom({ id: snapshot.key!, ...roomData } as Room);
-        setTimeLeft(roomData.timer || 30);
-      } else {
-        alert("Δωμάτιο δεν βρέθηκε");
+    const unsubscribeRoom = onValue(
+      roomRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const roomData = snapshot.val();
+          setRoom({ id: snapshot.key!, ...roomData } as Room);
+          setTimeLeft(roomData.timer || 30);
+        } else {
+          alert("Δωμάτιο δεν βρέθηκε");
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Room listener error:", err);
+        alert("Σφάλμα φόρτωσης δωματίου. Έλεγξε Firebase Rules + indexes (.indexOn)."
+        );
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
     // Listen to players in room using query
     const playersRef = ref(db, "players");
     const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
-    const unsubscribePlayers = onValue(playersQuery, (snapshot) => {
-      const playersData: Player[] = [];
-      if (snapshot.exists()) {
-        snapshot.forEach((child) => {
-          playersData.push({ id: child.key!, ...child.val() } as Player);
-        });
-      }
-      setPlayers(playersData);
+    const unsubscribePlayers = onValue(
+      playersQuery,
+      (snapshot) => {
+        const playersData: Player[] = [];
+        if (snapshot.exists()) {
+          snapshot.forEach((child) => {
+            playersData.push({ id: child.key!, ...child.val() } as Player);
+          });
+        }
+        setPlayers(playersData);
 
-      if (playerId) {
-        const player = playersData.find((p) => p.id === playerId);
-        if (player) setCurrentPlayer(player);
+        if (playerId) {
+          const player = playersData.find((p) => p.id === playerId);
+          if (player) setCurrentPlayer(player);
+        }
+      },
+      (err) => {
+        console.error("Players listener error:", err);
+        alert("Σφάλμα φόρτωσης παικτών. Έλεγξε Firebase Rules + indexes (.indexOn)."
+        );
+        setLoading(false);
       }
-    });
+    );
 
     return () => {
       unsubscribeRoom();

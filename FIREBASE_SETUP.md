@@ -85,10 +85,12 @@ NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project_id-default-rtdb.firebasei
     ".read": true,
     ".write": true,
     "rooms": {
+      ".indexOn": ["code"],
       ".read": true,
       ".write": true
     },
     "players": {
+      ".indexOn": ["roomId"],
       ".read": true,
       ".write": true
     },
