@@ -649,14 +649,29 @@ export default function RoomPage() {
                 </div>
                 <div className="text-purple-700 dark:text-purple-300">
                   <div className="mb-2">⏱ {timeLeft}s απομένουν</div>
-                  <div className="text-sm">
+                  <div className="text-sm font-bold">
                     {(() => {
                     const eligiblePlayers = players.filter(p => 
                       !(p.isHost && hostViewMode === 'observe')
                     );
-                    return `${eligiblePlayers.filter(p => p.hasAnswered).length}/${eligiblePlayers.length} παίκτες απάντησαν`;
-                  })()}
+                    const answeredPlayers = eligiblePlayers.filter(p => p.hasAnswered);
+                    const totalPlayers = eligiblePlayers.length;
+                    const answeredCount = answeredPlayers.length;
+                    
+                    if (currentPlayer?.isHost && hostViewMode === 'observe') {
+                      // Host sees: "1/2 παίκτες απάντησαν (1 ακόμη περιμένει)"
+                      return `${answeredCount}/${totalPlayers} παίκτες απάντησαν${answeredCount < totalPlayers ? ` (${totalPlayers - answeredCount} ακόμη περιμένει)` : ''}`;
+                    } else {
+                      // Regular players see normal count
+                      return `${answeredCount}/${totalPlayers} απάντησαν`;
+                    }
+                    })()}
                   </div>
+                  {currentPlayer?.isHost && hostViewMode === 'observe' && (
+                    <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      🔍 Observe Mode - Δεν μπορείς να απαντήσεις
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -671,7 +686,17 @@ export default function RoomPage() {
                     const eligiblePlayers = players.filter(p => 
                       !(p.isHost && hostViewMode === 'observe')
                     );
-                    return `${eligiblePlayers.filter(p => p.hasAnswered).length}/${eligiblePlayers.length} απάντησαν`;
+                    const answeredPlayers = eligiblePlayers.filter(p => p.hasAnswered);
+                    const totalPlayers = eligiblePlayers.length;
+                    const answeredCount = answeredPlayers.length;
+                    
+                    if (currentPlayer?.isHost && hostViewMode === 'observe') {
+                      // Host sees: "1/2 παίκτες απάντησαν (1 ακόμη περιμένει)"
+                      return `${answeredCount}/${totalPlayers} παίκτες απάντησαν${answeredCount < totalPlayers ? ` (${totalPlayers - answeredCount} ακόμη περιμένει)` : ''}`;
+                    } else {
+                      // Regular players see normal count
+                      return `${answeredCount}/${totalPlayers} απάντησαν`;
+                    }
                   })()}
                     </div>
                   </div>
