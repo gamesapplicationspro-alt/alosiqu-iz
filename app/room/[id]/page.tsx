@@ -517,7 +517,7 @@ export default function RoomPage() {
                 <div className="space-y-3 sm:space-y-4">
                   {/* View Mode Selector */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-lg">
-                    <div className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100 mb-2 sm:mb-3">👑 Λειτουργία Host</div>
+                    <div className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100 mb-2 sm:mb-3">👑 Επιλογή Host</div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => {
@@ -534,13 +534,11 @@ export default function RoomPage() {
                       </button>
                       <button
                         onClick={() => {
-                          setHostViewMode('observe');
-                          setShowQuestionsToHost(true);
+                          // Redirect to observe page
+                          window.location.href = `/room/${roomId}/observe?playerId=${encodeURIComponent(playerId || '')}`;
                         }}
                         className={`flex-1 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-all text-xs sm:text-base ${
-                          hostViewMode === 'observe'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          'bg-purple-600 text-white hover:bg-purple-700'
                         }`}
                       >
                         👁️ Παρατηρώ
