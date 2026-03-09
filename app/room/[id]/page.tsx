@@ -18,14 +18,14 @@ export default function RoomPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(15);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState("");
   const [countdownToNext, setCountdownToNext] = useState(0);
   const [showQuestionsToHost, setShowQuestionsToHost] = useState(false);
-  const [hostViewMode, setHostViewMode] = useState<'participate'>('participate');
+  const [hostViewMode, setHostViewMode] = useState<'participate' | 'observe'>('participate');
   const [revealAnswer, setRevealAnswer] = useState(false);
 
   useEffect(() => {
@@ -197,8 +197,11 @@ export default function RoomPage() {
   useEffect(() => {
     if (!room || room.status !== "active") return;
     
-    // Check if all eligible players have answered (now all players can answer)
-    const allAnswered = players.length > 0 && players.every(p => p.hasAnswered);
+    // Check if all eligible players have answered (exclude host in observe mode)
+    const eligiblePlayers = players.filter(p => 
+      !(p.isHost && hostViewMode === 'observe')
+    );
+    const allAnswered = eligiblePlayers.length > 0 && eligiblePlayers.every(p => p.hasAnswered);
     
     if (timeLeft <= 0 || allAnswered) {
       // Show countdown for 3 seconds before moving to next question
@@ -439,11 +442,26 @@ export default function RoomPage() {
             {/* Players Grid with Animations */}
             <div className="mb-8">
               <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
-                🎯 Παίκτες ({players.length}) 
+                🎯 Παίκτες ({(() => {
+                const eligiblePlayers = players.filter(p => 
+                  !(p.isHost && hostViewMode === 'observe')
+                );
+                return eligiblePlayers.length;
+              })()}) 
                 <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
-                  {players.length >= 2 
-                    ? "✅ Έτοιμοι για παιχνίδι!" 
-                    : `⏳ Χρειάζονται ${2 - players.length} ακόμη...`}
+                  {(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    return eligiblePlayers.length >= 2 
+                      ? "✅ Έτοιμοι για παιχνίδι!" 
+                      : `⏳ Χρειάζονται ${2 - eligiblePlayers.length} ακόμη...`;
+                  })()}
+                </span>
+                <span className="text-sm text-amber-600 dark:text-amber-400 ml-2">
+                  {hostViewMode === 'observe' && currentPlayer?.isHost 
+                    ? '(Host observe)' 
+                    : ''}
                 </span>
               </h2>
               
@@ -494,17 +512,67 @@ export default function RoomPage() {
             <div className="text-center">
               {currentPlayer?.isHost && (
                 <div className="space-y-4">
+                  {/* View Mode Selector */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
+                    <div className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-3">👑 Host Mode</div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setHostViewMode('participate');
+                          setShowQuestionsToHost(false);
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                          hostViewMode === 'participate'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        🎮 Συμμετέχω
+                      </button>
+                      <button
+                        onClick={() => {
+                          setHostViewMode('observe');
+                          setShowQuestionsToHost(true);
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                          hostViewMode === 'observe'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        👁️ Παρατηρώ
+                      </button>
+                    </div>
+                  </div>
+                  
                   {/* Start Game Button */}
                   <button
                     onClick={startGame}
-                    disabled={players.length < 2}
+                    disabled={(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    return eligiblePlayers.length < 2;
+                  })()}
                     className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
-                      players.length >= 2 
-                        ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
-                        : "bg-gray-400 cursor-not-allowed opacity-50"
+                      (() => {
+                        const eligiblePlayers = players.filter(p => 
+                          !(p.isHost && hostViewMode === 'observe')
+                        );
+                        return eligiblePlayers.length >= 2 
+                          ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
+                          : "bg-gray-400 cursor-not-allowed opacity-50";
+                      })()
                     }`}
                   >
-                    {players.length < 2 ? `⏳ Χρειάζονται ${2 - players.length} παίκτες` : "🚀 Ξεκίνα Παιχνίδι"}
+                    {(() => {
+                      const eligiblePlayers = players.filter(p => 
+                        !(p.isHost && hostViewMode === 'observe')
+                      );
+                      return eligiblePlayers.length < 2 
+                        ? `⏳ Χρειάζονται ${2 - eligiblePlayers.length} παίκτες` 
+                        : "🚀 Ξεκίνα Παιχνίδι";
+                    })()}
                   </button>
                 </div>
               )}
@@ -527,14 +595,94 @@ export default function RoomPage() {
 
         {room.status === "active" && currentQuestion && currentQuestion.answers && (
           <div className="animate-fade-in">
-            {/* Normal Game View */}
-            <>
+            {/* Host Observe Mode View */}
+            {currentPlayer?.isHost && hostViewMode === 'observe' ? (
+              <div className="text-center p-8 bg-purple-100 dark:bg-purple-900 rounded-xl">
+                <div className="text-6xl mb-4 animate-pulse">👁️</div>
+                <h2 className="text-2xl font-bold mb-4 text-purple-900 dark:text-purple-100">
+                  Host Observe Mode
+                </h2>
+                <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-6 mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-900 dark:text-purple-100">
+                    Ερώτηση {room.currentQuestionIndex + 1}: {currentQuestion.text}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {currentQuestion.answers.map((answer, idx) => (
+                      <div 
+                        key={idx}
+                        className={`bg-white dark:bg-gray-800 p-4 rounded-lg border-2 transition-all ${
+                          revealAnswer && answer.id === currentQuestion.correctAnswerId
+                            ? 'border-green-500 bg-green-100 dark:bg-green-900 animate-pulse'
+                            : 'border-purple-300 dark:border-purple-700'
+                        }`}
+                      >
+                        <span className={`font-bold ${
+                          revealAnswer && answer.id === currentQuestion.correctAnswerId
+                            ? 'text-green-900 dark:text-green-100'
+                            : 'text-purple-900 dark:text-purple-100'
+                        }`}>
+                          {String.fromCharCode(65 + idx)}. {answer.text}
+                          {revealAnswer && answer.id === currentQuestion.correctAnswerId && (
+                            <span className="ml-2 text-green-600 dark:text-green-400 font-bold">
+                              ✓ ΣΩΣΤΟ
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-purple-700 dark:text-purple-300">
+                  <div className="mb-2">⏱ {timeLeft}s απομένουν</div>
+                  <div className="text-sm font-bold">
+                    {(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    const answeredPlayers = eligiblePlayers.filter(p => p.hasAnswered);
+                    const totalPlayers = eligiblePlayers.length;
+                    const answeredCount = answeredPlayers.length;
+                    
+                    if (currentPlayer?.isHost && hostViewMode === 'observe') {
+                      // Host sees: "1/2 παίκτες απάντησαν (1 ακόμη περιμένει)"
+                      return `${answeredCount}/${totalPlayers} παίκτες απάντησαν${answeredCount < totalPlayers ? ` (${totalPlayers - answeredCount} ακόμη περιμένει)` : ''}`;
+                    } else {
+                      // Regular players see normal count
+                      return `${answeredCount}/${totalPlayers} απάντησαν`;
+                    }
+                    })()}
+                  </div>
+                  {currentPlayer?.isHost && hostViewMode === 'observe' && (
+                    <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      🔍 Observe Mode - Δεν μπορείς να απαντήσεις
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Normal Game View
+              <>
                 <div className="mb-6 text-center">
                   <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg">
                     <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">⏱</span>
                     <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">{timeLeft}s</span>
                     <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
-                      {players.filter(p => p.hasAnswered).length}/{players.length} απάντησαν
+                      {(() => {
+                    const eligiblePlayers = players.filter(p => 
+                      !(p.isHost && hostViewMode === 'observe')
+                    );
+                    const answeredPlayers = eligiblePlayers.filter(p => p.hasAnswered);
+                    const totalPlayers = eligiblePlayers.length;
+                    const answeredCount = answeredPlayers.length;
+                    
+                    if (currentPlayer?.isHost && hostViewMode === 'observe') {
+                      // Host sees: "1/2 παίκτες απάντησαν (1 ακόμη περιμένει)"
+                      return `${answeredCount}/${totalPlayers} παίκτες απάντησαν${answeredCount < totalPlayers ? ` (${totalPlayers - answeredCount} ακόμη περιμένει)` : ''}`;
+                    } else {
+                      // Regular players see normal count
+                      return `${answeredCount}/${totalPlayers} απάντησαν`;
+                    }
+                  })()}
                     </div>
                   </div>
                 </div>
