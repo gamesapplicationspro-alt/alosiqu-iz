@@ -442,7 +442,12 @@ export default function RoomPage() {
             {/* Players Grid with Animations */}
             <div className="mb-8">
               <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
-                🎯 Παίκτες ({players.length}) 
+                🎯 Παίκτες ({(() => {
+                const eligiblePlayers = players.filter(p => 
+                  !(p.isHost && hostViewMode === 'observe')
+                );
+                return eligiblePlayers.length;
+              })()}) 
                 <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
                   {(() => {
                     const eligiblePlayers = players.filter(p => 
