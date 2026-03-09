@@ -20,6 +20,33 @@ export default function ObservePage() {
   const [revealAnswer, setRevealAnswer] = useState(false);
   const [countdownToNext, setCountdownToNext] = useState(0);
 
+  // Start game function
+  const startGame = async () => {
+    if (!room || !currentPlayer?.isHost) return;
+    
+    try {
+      const db = await getDb();
+      const roomRef = ref(db, `rooms/${roomId}`);
+      
+      // Reset all players' hasAnswered status
+      const playersRef = ref(db, "players");
+      const playersQuery = query(playersRef, orderByChild("roomId"), equalTo(roomId));
+      
+      onValue(playersQuery, (snapshot) => {
+        if (snapshot.exists()) {
+          snapshot.forEach((child) => {
+            update(ref(db, `players/${child.key}`), { hasAnswered: false });
+          });
+        }
+      }, { onlyOnce: true });
+
+      // Start the game
+      await update(roomRef, { status: "active" });
+    } catch (error) {
+      console.error("Error starting game:", error);
+    }
+  };
+
   useEffect(() => {
     if (!roomId || typeof roomId !== "string") return;
     if (!playerId) return;
@@ -109,7 +136,7 @@ export default function ObservePage() {
 
     if (!currentQuestion) return;
 
-    // Check if all non-host players have answered
+    // Check if all non-host players have answered (exclude host completely)
     const eligiblePlayers = players.filter(p => !p.isHost);
     const allAnswered = eligiblePlayers.length > 0 && eligiblePlayers.every(p => p.hasAnswered);
     
@@ -232,7 +259,7 @@ export default function ObservePage() {
             <h2 className="text-2xl font-bold text-purple-900 dark:text-purple-100 mb-4">
               Αναμονή Έναρξης Παιχνιδιού
             </h2>
-            <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-6 max-w-md mx-auto">
+            <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-6 max-w-md mx-auto mb-6">
               <h3 className="text-lg font-bold mb-4 text-purple-900 dark:text-purple-100">
                 Παίκτες στο Δωμάτιο
               </h3>
@@ -262,6 +289,40 @@ export default function ObservePage() {
                 ))}
               </div>
             </div>
+            
+            {/* Host Controls */}
+            {currentPlayer?.isHost && (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <div className="text-sm text-purple-700 dark:text-purple-300 mb-2">
+                    {players.filter(p => !p.isHost).length >= 2 
+                      ? "✅ Έτοιμοι για παιχνίδι!" 
+                      : `⏳ Χρειάζονται ${2 - players.filter(p => !p.isHost).length} ακόμη...`}
+                  </div>
+                </div>
+                <button
+                  onClick={startGame}
+                  disabled={players.filter(p => !p.isHost).length < 2}
+                  className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
+                    players.filter(p => !p.isHost).length >= 2 
+                      ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
+                      : "bg-gray-400 cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  {players.filter(p => !p.isHost).length < 2 
+                    ? `⏳ Χρειάζονται ${2 - players.filter(p => !p.isHost).length} παίκτες` 
+                    : "🚀 Ξεκίνα Παιχνίδι"}
+                </button>
+                <div className="text-center">
+                  <button
+                    onClick={() => window.location.href = `/room/${roomId}`}
+                    className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 underline text-sm"
+                  >
+                    ← Επιστροφή σε Participate Mode
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -365,6 +426,18 @@ export default function ObservePage() {
                 </div>
               </div>
             </div>
+            
+            {/* Host Controls for Active Game */}
+            {currentPlayer?.isHost && (
+              <div className="text-center mt-6">
+                <button
+                  onClick={() => window.location.href = `/room/${roomId}`}
+                  className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 underline text-sm"
+                >
+                  ← Επιστροφή σε Participate Mode
+                </button>
+              </div>
+            )}
           </div>
         )}
 
