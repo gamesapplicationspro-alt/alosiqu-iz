@@ -314,7 +314,7 @@ export default function QuizPage() {
 
     <ErrorBoundary>
 
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 py-12 px-4 animate-fade-in">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 py-6 sm:py-8 lg:py-12 px-4 sm:px-6 animate-fade-in">
 
         <div className="mx-auto max-w-3xl">
 
@@ -336,11 +336,11 @@ export default function QuizPage() {
 
           />
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-4 sm:mt-6 flex justify-end">
 
             <button
 
-              className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-6 py-3 text-white font-semibold hover:from-amber-700 hover:to-yellow-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl animate-glow"
+              className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-4 py-2 sm:px-6 sm:py-3 text-white font-semibold hover:from-amber-700 hover:to-yellow-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl animate-glow text-sm sm:text-base"
 
               disabled={state.selectedAnswer === null}
 

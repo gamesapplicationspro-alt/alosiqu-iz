@@ -400,25 +400,25 @@ export default function RoomPage() {
     : null;
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900">
       {/* Name Modal */}
       {showNameModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">Δώσε το όνομά σου</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-sm w-full">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">Δώσε το όνομά σου</h2>
             <input
               type="text"
               value={playerNameInput}
               onChange={(e) => setPlayerNameInput(e.target.value)}
               placeholder="Όνομα παίκτη"
-              className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && createPlayer()}
             />
             <button
               onClick={createPlayer}
               disabled={!playerNameInput.trim()}
-              className="w-full rounded-lg bg-amber-600 px-4 py-3 text-white font-semibold hover:bg-amber-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-amber-600 px-4 py-3 text-white font-semibold hover:bg-amber-700 disabled:opacity-50 text-sm sm:text-base"
             >
               Είσοδος
             </button>
@@ -426,32 +426,32 @@ export default function RoomPage() {
         </div>
       )}
 
-      <div className="flex-1 p-4 lg:p-8">
+      <div className="flex-1 p-3 sm:p-4 lg:p-8">
         {room.status === "waiting" && (
           <div className="animate-fade-in">
             {/* Animated Header */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-4 sm:mb-8">
               <div className="inline-block">
-                <h1 className="text-4xl font-bold mb-4 text-amber-900 dark:text-amber-100 animate-pulse">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 text-amber-900 dark:text-amber-100 animate-pulse">
                   🎮 Αναμονή Παικτών
                 </h1>
-                <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-8 py-4 inline-block shadow-lg transform hover:scale-105 transition-all">
-                  <div className="text-sm font-bold mb-1">Κωδικός Δωματίου</div>
-                  <div className="text-3xl font-mono font-bold">{room.code}</div>
+                <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-4 sm:px-6 py-2 sm:py-4 inline-block shadow-lg transform hover:scale-105 transition-all">
+                  <div className="text-xs sm:text-sm font-bold mb-1">Κωδικός Δωματίου</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold">{room.code}</div>
                 </div>
               </div>
             </div>
 
             {/* Players Grid with Animations */}
-            <div className="mb-8">
-              <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl lg:text-2xl mb-4 sm:mb-6 text-center text-amber-900 dark:text-amber-100">
                 🎯 Παίκτες ({(() => {
                 const eligiblePlayers = players.filter(p => 
                   !(p.isHost && hostViewMode === 'observe')
                 );
                 return eligiblePlayers.length;
               })()}) 
-                <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
+                <span className="text-sm lg:text-base ml-2 text-amber-700 dark:text-amber-300">
                   {(() => {
                     const eligiblePlayers = players.filter(p => 
                       !(p.isHost && hostViewMode === 'observe')
@@ -461,14 +461,14 @@ export default function RoomPage() {
                       : `⏳ Χρειάζονται ${2 - eligiblePlayers.length} ακόμη...`;
                   })()}
                 </span>
-                <span className="text-sm text-amber-600 dark:text-amber-400 ml-2">
+                <span className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 ml-2">
                   {hostViewMode === 'observe' && currentPlayer?.isHost 
                     ? '(Host observe)' 
                     : ''}
                 </span>
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 max-w-6xl mx-auto px-2 sm:px-0">
                 {players
                   .sort((a, b) => {
                     // Keep consistent ordering: host first, then by name
@@ -479,16 +479,16 @@ export default function RoomPage() {
                   .map((p, idx) => (
                   <div 
                     key={p.id} 
-                    className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up"
+                    className="bg-white dark:bg-gray-800 p-3 sm:p-4 lg:p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-2 sm:mb-3">
                       <div className="flex items-center">
-                        <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-12 lg:w-12 lg:h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base lg:text-lg mr-2 sm:mr-3">
                           {p.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-amber-900 dark:text-amber-100">{p.name}</div>
+                          <div className="font-bold text-sm sm:text-base lg:text-lg text-amber-900 dark:text-amber-100">{p.name}</div>
                           {p.isHost && (
                             <div className="text-xs bg-purple-600 text-white px-2 py-1 rounded-full inline-block mt-1 animate-glow">
                               👑 HOST
@@ -496,7 +496,7 @@ export default function RoomPage() {
                           )}
                         </div>
                       </div>
-                      <div className="text-2xl animate-bounce" style={{ animationDelay: `${idx * 200}ms` }}>
+                      <div className="text-lg sm:text-xl lg:text-2xl animate-bounce" style={{ animationDelay: `${idx * 200}ms` }}>
                         {p.isHost ? "👑" : "🎮"}
                       </div>
                     </div>
@@ -512,19 +512,19 @@ export default function RoomPage() {
             </div>
 
             {/* Host Controls */}
-            <div className="text-center">
+            <div className="text-center px-2 sm:px-0">
               {currentPlayer?.isHost && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* View Mode Selector */}
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-                    <div className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-3">👑 Λειτουργία Host</div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-lg">
+                    <div className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100 mb-2 sm:mb-3">👑 Λειτουργία Host</div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => {
                           setHostViewMode('participate');
                           setShowQuestionsToHost(false);
                         }}
-                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                        className={`flex-1 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-all text-xs sm:text-base ${
                           hostViewMode === 'participate'
                             ? 'bg-green-600 text-white'
                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -537,7 +537,7 @@ export default function RoomPage() {
                           setHostViewMode('observe');
                           setShowQuestionsToHost(true);
                         }}
-                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                        className={`flex-1 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-all text-xs sm:text-base ${
                           hostViewMode === 'observe'
                             ? 'bg-purple-600 text-white'
                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -557,7 +557,7 @@ export default function RoomPage() {
                     );
                     return eligiblePlayers.length < 2;
                   })()}
-                    className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
+                    className={`rounded-lg px-4 sm:px-6 lg:px-8 py-3 sm:py-4 text-white font-bold text-sm sm:text-lg lg:text-xl transform transition-all shadow-lg ${
                       (() => {
                         const eligiblePlayers = players.filter(p => 
                           !(p.isHost && hostViewMode === 'observe')
@@ -582,11 +582,11 @@ export default function RoomPage() {
 
               {/* Non-host message */}
               {!currentPlayer?.isHost && (
-                <div className="bg-amber-100 dark:bg-amber-900 rounded-lg p-6 max-w-md mx-auto animate-pulse">
-                  <div className="text-amber-900 dark:text-amber-100 font-bold text-lg">
+                <div className="bg-amber-100 dark:bg-amber-900 rounded-lg p-4 sm:p-6 max-w-sm sm:max-w-md mx-auto animate-pulse">
+                  <div className="text-amber-900 dark:text-amber-100 font-bold text-base sm:text-lg">
                     ⏳ Αναμονή Host...
                   </div>
-                  <div className="text-amber-700 dark:text-amber-300 mt-2">
+                  <div className="text-amber-700 dark:text-amber-300 mt-2 text-sm sm:text-base">
                     Ο host θα ξεκινήσει το παιχνίδι όταν είστε έτοιμοι!
                   </div>
                 </div>
@@ -602,20 +602,20 @@ export default function RoomPage() {
             <div className="animate-fade-in">
               {/* Host Observe Mode View */}
               {currentPlayer?.isHost && hostViewMode === "observe" ? (
-                <div className="text-center p-8 bg-purple-100 dark:bg-purple-900 rounded-xl">
-                  <div className="text-6xl mb-4 animate-pulse">👁️</div>
-                  <h2 className="text-2xl font-bold mb-4 text-purple-900 dark:text-purple-100">
+                <div className="text-center p-4 sm:p-6 lg:p-8 bg-purple-100 dark:bg-purple-900 rounded-xl mx-2 sm:mx-0">
+                  <div className="text-3xl sm:text-4xl lg:text-6xl mb-2 sm:mb-4 animate-pulse">👁️</div>
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 text-purple-900 dark:text-purple-100">
                     Λειτουργία Παρατήρησης Host
                   </h2>
-                  <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-6 mb-6">
-                    <h3 className="text-xl font-bold mb-4 text-purple-900 dark:text-purple-100">
+                  <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+                    <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-2 sm:mb-4 text-purple-900 dark:text-purple-100">
                       Ερώτηση {room.currentQuestionIndex + 1}: {currentQuestion.text}
                     </h3>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 gap-2 sm:gap-3">
                       {currentQuestion.answers.map((answer, idx) => (
                         <div
                           key={idx}
-                          className={`bg-white dark:bg-gray-800 p-4 rounded-lg border-2 transition-all ${
+                          className={`bg-white dark:bg-gray-800 p-2 sm:p-3 lg:p-4 rounded-lg border-2 transition-all text-sm sm:text-base ${
                             revealAnswer && answer.id === currentQuestion.correctAnswerId
                               ? "border-green-500 bg-green-100 dark:bg-green-900 animate-pulse"
                               : "border-purple-300 dark:border-purple-700"
@@ -631,7 +631,7 @@ export default function RoomPage() {
                             {String.fromCharCode(65 + idx)}. {answer.text}
                             {revealAnswer &&
                               answer.id === currentQuestion.correctAnswerId && (
-                                <span className="ml-2 text-green-600 dark:text-green-400 font-bold">
+                                <span className="ml-2 text-green-600 dark:text-green-400 font-bold text-xs sm:text-sm">
                                   ✓ ΣΩΣΤΟ
                                 </span>
                               )}
@@ -640,9 +640,9 @@ export default function RoomPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="text-purple-700 dark:text-purple-300">
+                  <div className="text-purple-700 dark:text-purple-300 text-sm sm:text-base">
                     <div className="mb-2">⏱ {timeLeft}s απομένουν</div>
-                    <div className="text-sm font-bold">
+                    <div className="text-xs sm:text-sm font-bold">
                       {(() => {
                         const eligiblePlayers = players.filter(
                           (p) => !(p.isHost && hostViewMode === "observe")
@@ -675,15 +675,15 @@ export default function RoomPage() {
               ) : (
                 // Normal Game View
                 <>
-                  <div className="mb-6 text-center">
-                    <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg">
-                      <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">
+                  <div className="mb-3 sm:mb-6 text-center px-2 sm:px-0">
+                    <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 shadow-lg">
+                      <span className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900 dark:text-amber-100 mr-2 sm:mr-3">
                         ⏱
                       </span>
-                      <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                      <span className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900 dark:text-amber-100">
                         {timeLeft}s
                       </span>
-                      <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
+                      <div className="ml-2 sm:ml-4 text-xs sm:text-sm text-amber-700 dark:text-amber-300">
                         {(() => {
                           const eligiblePlayers = players.filter(
                             (p) => !(p.isHost && hostViewMode === "observe")

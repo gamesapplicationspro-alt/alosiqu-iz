@@ -15,7 +15,7 @@ export default function AnswerButton({
   isSelected = false,
 }: AnswerButtonProps) {
   let baseClasses =
-    "w-full rounded-md border-2 border-amber-600 p-3 text-left transition-all duration-300 transform hover:scale-102 shadow-md";
+    "w-full rounded-md border-2 border-amber-600 p-3 sm:p-4 text-left transition-all duration-300 transform hover:scale-102 shadow-md text-sm sm:text-base";
 
   if (isSelected) {
     baseClasses += " bg-amber-200 dark:bg-amber-800 border-amber-800";
