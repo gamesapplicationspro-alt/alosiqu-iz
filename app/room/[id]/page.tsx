@@ -953,42 +953,47 @@ export default function RoomPage() {
               
               return leaderboardPlayers
                 .sort((a, b) => b.score - a.score)
-                .map((p, idx) => (
-                  <div 
-                    key={p.id} 
-                    className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-                      idx === 0 
-                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
-                        : idx === 1 
-                        ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
-                        : idx === 2 
-                        ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
-                        : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <span className="text-xl mr-2 font-bold">
-                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
-                        </span>
-                        <div>
-                          <span className="font-bold">{p.name}</span>
-                          {p.isHost && hostViewMode === 'participate' && (
-                            <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                              👑
-                            </span>
-                          )}
-                          {p.hasAnswered && room.status === 'active' && (
-                            <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
-                              ✓
-                            </span>
-                          )}
+                .map((p, idx) => {
+                  // Don't show host badge in observe mode (even though host is filtered out)
+                  const showHostBadge = p.isHost && hostViewMode === 'participate';
+                  
+                  return (
+                    <div 
+                      key={p.id} 
+                      className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                        idx === 0 
+                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
+                          : idx === 1 
+                          ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
+                          : idx === 2 
+                          ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
+                          : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <span className="text-xl mr-2 font-bold">
+                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                          </span>
+                          <div>
+                            <span className="font-bold">{p.name}</span>
+                            {showHostBadge && (
+                              <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                                👑
+                              </span>
+                            )}
+                            {p.hasAnswered && room.status === 'active' && (
+                              <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                                ✓
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        <span className="font-bold text-lg">{p.score}</span>
                       </div>
-                      <span className="font-bold text-lg">{p.score}</span>
                     </div>
-                  </div>
-                ));
+                  );
+                });
             })()}
           </div>
           
