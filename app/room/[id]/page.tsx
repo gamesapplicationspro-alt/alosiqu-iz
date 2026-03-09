@@ -48,7 +48,8 @@ export default function RoomPage() {
             if (snapshot.exists()) {
               const roomData = snapshot.val();
               setRoom({ id: snapshot.key!, ...roomData } as Room);
-              setTimeLeft(roomData.timer || 30);
+              // Default timer to 15'' if not set
+              setTimeLeft(roomData.timer || 15);
             } else {
               setLoadError("Δωμάτιο δεν βρέθηκε. Μπορεί να έχει διαγραφεί.");
             }
@@ -248,7 +249,8 @@ export default function RoomPage() {
                 // Move to next question
                 await update(roomRef, {
                   currentQuestionIndex: room.currentQuestionIndex + 1,
-                  timer: 30
+                  // Set next question timer to 15''
+                  timer: 15
                 });
               } catch (error) {
                 console.error("Error advancing to next question:", error);
@@ -303,7 +305,8 @@ export default function RoomPage() {
       await update(roomRef, {
         status: "active",
         currentQuestionIndex: 0,
-        timer: 30
+        // Initial question timer 15''
+        timer: 15
       });
       
       // Local state will be updated by the listener
@@ -729,25 +732,42 @@ export default function RoomPage() {
                       {currentQuestion.answers.map((answer, idx) => {
                         const isCorrect = answer.id === currentQuestion.correctAnswerId;
                         const wasSelected = selectedAnswer === idx;
-                        
+
+                        // Before reveal: δείξε απλά τι επέλεξε ο παίκτης, χωρίς να το βγάζεις λάθος.
+                        // Μετά το reveal: πράσινο για τη σωστή, κόκκινο για τη λάθος επιλεγμένη.
+                        let containerClasses =
+                          "p-3 rounded-lg text-left transform transition-all duration-500 ";
+                        let statusLabel = "";
+
+                        if (revealAnswer) {
+                          if (isCorrect) {
+                            containerClasses +=
+                              "bg-green-500 text-white scale-105 shadow-lg animate-pulse";
+                            statusLabel = "✓ ΣΩΣΤΟ";
+                          } else if (wasSelected) {
+                            containerClasses += "bg-red-500 text-white";
+                            statusLabel = "✗ ΛΑΘΟΣ";
+                          } else {
+                            containerClasses +=
+                              "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+                          }
+                        } else {
+                          // Πριν εμφανιστεί η σωστή απάντηση, απλά τόνισε την επιλογή
+                          if (wasSelected) {
+                            containerClasses += "bg-blue-500 text-white";
+                          } else {
+                            containerClasses +=
+                              "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+                          }
+                        }
+
                         return (
-                          <div 
-                            key={idx}
-                            className={`p-3 rounded-lg text-left transform transition-all duration-500 ${
-                              isCorrect && revealAnswer
-                                ? "bg-green-500 text-white scale-105 shadow-lg animate-pulse" 
-                                : wasSelected 
-                                ? "bg-red-500 text-white" 
-                                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                            }`}
-                          >
+                          <div key={idx} className={containerClasses}>
                             <div className="flex justify-between items-center">
                               <span className="font-semibold">
                                 {String.fromCharCode(65 + idx)}. {answer.text}
                               </span>
-                              <span className="text-2xl font-bold">
-                                {isCorrect && revealAnswer ? "✓ ΣΩΣΤΟ" : wasSelected ? "✗ ΛΑΘΟΣ" : ""}
-                              </span>
+                              <span className="text-2xl font-bold">{statusLabel}</span>
                             </div>
                           </div>
                         );

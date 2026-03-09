@@ -49,7 +49,8 @@ export default function CreateRoom() {
         questions: shuffledQuestions,
         currentQuestionIndex: 0,
         status: "waiting",
-        timer: 30,
+        // Default timer per ερώτηση: 15''
+        timer: 15,
         createdAt: new Date().toISOString(),
       };
 
