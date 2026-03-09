@@ -12,6 +12,8 @@ import ProgressBar from "./components/ProgressBar";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
+import { getDb } from "../lib/firebase";
+
 import { Question } from "../types";
 
 
