@@ -25,7 +25,7 @@ export default function RoomPage() {
   const [playerNameInput, setPlayerNameInput] = useState("");
   const [countdownToNext, setCountdownToNext] = useState(0);
   const [showQuestionsToHost, setShowQuestionsToHost] = useState(false);
-  const [hostViewMode, setHostViewMode] = useState<'participate' | 'observe'>('participate');
+  const [hostViewMode, setHostViewMode] = useState<'participate'>('participate');
   const [revealAnswer, setRevealAnswer] = useState(false);
 
   useEffect(() => {
@@ -197,11 +197,8 @@ export default function RoomPage() {
   useEffect(() => {
     if (!room || room.status !== "active") return;
     
-    // Check if all eligible players have answered (exclude host in observe mode)
-    const eligiblePlayers = players.filter(p => 
-      !(p.isHost && hostViewMode === 'observe')
-    );
-    const allAnswered = eligiblePlayers.length > 0 && eligiblePlayers.every(p => p.hasAnswered);
+    // Check if all eligible players have answered (now all players can answer)
+    const allAnswered = players.length > 0 && players.every(p => p.hasAnswered);
     
     if (timeLeft <= 0 || allAnswered) {
       // Show countdown for 3 seconds before moving to next question
@@ -442,26 +439,11 @@ export default function RoomPage() {
             {/* Players Grid with Animations */}
             <div className="mb-8">
               <h2 className="text-2xl mb-6 text-center text-amber-900 dark:text-amber-100">
-                🎯 Παίκτες ({(() => {
-                const eligiblePlayers = players.filter(p => 
-                  !(p.isHost && hostViewMode === 'observe')
-                );
-                return eligiblePlayers.length;
-              })()}) 
+                🎯 Παίκτες ({players.length}) 
                 <span className="text-lg ml-2 text-amber-700 dark:text-amber-300">
-                  {(() => {
-                    const eligiblePlayers = players.filter(p => 
-                      !(p.isHost && hostViewMode === 'observe')
-                    );
-                    return eligiblePlayers.length >= 2 
-                      ? "✅ Έτοιμοι για παιχνίδι!" 
-                      : `⏳ Χρειάζονται ${2 - eligiblePlayers.length} ακόμη...`;
-                  })()}
-                </span>
-                <span className="text-sm text-amber-600 dark:text-amber-400 ml-2">
-                  {hostViewMode === 'observe' && currentPlayer?.isHost 
-                    ? '(Host observe)' 
-                    : ''}
+                  {players.length >= 2 
+                    ? "✅ Έτοιμοι για παιχνίδι!" 
+                    : `⏳ Χρειάζονται ${2 - players.length} ακόμη...`}
                 </span>
               </h2>
               
@@ -512,67 +494,17 @@ export default function RoomPage() {
             <div className="text-center">
               {currentPlayer?.isHost && (
                 <div className="space-y-4">
-                  {/* View Mode Selector */}
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-                    <div className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-3">👑 Host Mode</div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setHostViewMode('participate');
-                          setShowQuestionsToHost(false);
-                        }}
-                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
-                          hostViewMode === 'participate'
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                        }`}
-                      >
-                        🎮 Συμμετέχω
-                      </button>
-                      <button
-                        onClick={() => {
-                          setHostViewMode('observe');
-                          setShowQuestionsToHost(true);
-                        }}
-                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
-                          hostViewMode === 'observe'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                        }`}
-                      >
-                        👁️ Παρατηρώ
-                      </button>
-                    </div>
-                  </div>
-                  
                   {/* Start Game Button */}
                   <button
                     onClick={startGame}
-                    disabled={(() => {
-                    const eligiblePlayers = players.filter(p => 
-                      !(p.isHost && hostViewMode === 'observe')
-                    );
-                    return eligiblePlayers.length < 2;
-                  })()}
+                    disabled={players.length < 2}
                     className={`rounded-lg px-8 py-4 text-white font-bold text-lg transform transition-all shadow-lg ${
-                      (() => {
-                        const eligiblePlayers = players.filter(p => 
-                          !(p.isHost && hostViewMode === 'observe')
-                        );
-                        return eligiblePlayers.length >= 2 
-                          ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
-                          : "bg-gray-400 cursor-not-allowed opacity-50";
-                      })()
+                      players.length >= 2 
+                        ? "bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 hover:scale-105 animate-glow" 
+                        : "bg-gray-400 cursor-not-allowed opacity-50"
                     }`}
                   >
-                    {(() => {
-                      const eligiblePlayers = players.filter(p => 
-                        !(p.isHost && hostViewMode === 'observe')
-                      );
-                      return eligiblePlayers.length < 2 
-                        ? `⏳ Χρειάζονται ${2 - eligiblePlayers.length} παίκτες` 
-                        : "🚀 Ξεκίνα Παιχνίδι";
-                    })()}
+                    {players.length < 2 ? `⏳ Χρειάζονται ${2 - players.length} παίκτες` : "🚀 Ξεκίνα Παιχνίδι"}
                   </button>
                 </div>
               )}
@@ -590,119 +522,19 @@ export default function RoomPage() {
               )}
             </div>
 
-            {/* Questions Preview for Host (Observe Mode Only) */}
-            {showQuestionsToHost && currentPlayer?.isHost && hostViewMode === 'observe' && (
-              <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl animate-fade-in">
-                <h3 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-100">
-                  �️ Προεπισκόπηση Ερωτήσεων ({room.questions.length})
-                </h3>
-                <div className="text-sm text-amber-700 dark:text-amber-300 mb-4">
-                  Σε observe mode - δεν μπορείς να συμμετέχεις στο παιχνίδι
-                </div>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {room.questions.map((q, idx) => (
-                    <div 
-                      key={q.id}
-                      className="bg-amber-50 dark:bg-amber-900 rounded-lg p-4 border-l-4 border-amber-600"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="font-bold text-amber-900 dark:text-amber-100 mb-1">
-                            Ερώτηση {idx + 1}: {q.text.substring(0, 50)}...
-                          </div>
-                          <div className="text-sm text-amber-700 dark:text-amber-300">
-                            {q.answers.length} απαντήσεις
-                          </div>
-                        </div>
-                        <div className="text-2xl ml-3">
-                          {idx === 0 ? "❓" : idx === 1 ? "🤔" : idx === 2 ? "💭" : "🧠"}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         {room.status === "active" && currentQuestion && currentQuestion.answers && (
           <div className="animate-fade-in">
-            {/* Host Observe Mode View */}
-            {currentPlayer?.isHost && hostViewMode === 'observe' ? (
-              <div className="text-center p-8 bg-purple-100 dark:bg-purple-900 rounded-xl">
-                <div className="text-6xl mb-4 animate-pulse">👁️</div>
-                <h2 className="text-2xl font-bold mb-4 text-purple-900 dark:text-purple-100">
-                  Host Observe Mode
-                </h2>
-                <div className="bg-purple-200 dark:bg-purple-800 rounded-lg p-6 mb-6">
-                  <h3 className="text-xl font-bold mb-4 text-purple-900 dark:text-purple-100">
-                    Ερώτηση {room.currentQuestionIndex + 1}: {currentQuestion.text}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {currentQuestion.answers.map((answer, idx) => (
-                      <div 
-                        key={idx}
-                        className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700"
-                      >
-                        <span className="font-bold text-purple-900 dark:text-purple-100">
-                          {String.fromCharCode(65 + idx)}. {answer.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-purple-700 dark:text-purple-300">
-                  <div className="mb-2">⏱ {timeLeft}s απομένουν</div>
-                  <div className="text-sm font-bold">
-                    {(() => {
-                    const eligiblePlayers = players.filter(p => 
-                      !(p.isHost && hostViewMode === 'observe')
-                    );
-                    const answeredPlayers = eligiblePlayers.filter(p => p.hasAnswered);
-                    const totalPlayers = eligiblePlayers.length;
-                    const answeredCount = answeredPlayers.length;
-                    
-                    if (currentPlayer?.isHost && hostViewMode === 'observe') {
-                      // Host sees: "1/2 παίκτες απάντησαν (1 ακόμη περιμένει)"
-                      return `${answeredCount}/${totalPlayers} παίκτες απάντησαν${answeredCount < totalPlayers ? ` (${totalPlayers - answeredCount} ακόμη περιμένει)` : ''}`;
-                    } else {
-                      // Regular players see normal count
-                      return `${answeredCount}/${totalPlayers} απάντησαν`;
-                    }
-                    })()}
-                  </div>
-                  {currentPlayer?.isHost && hostViewMode === 'observe' && (
-                    <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                      🔍 Observe Mode - Δεν μπορείς να απαντήσεις
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              // Normal Game View
-              <>
+            {/* Normal Game View */}
+            <>
                 <div className="mb-6 text-center">
                   <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg">
                     <span className="text-2xl font-bold text-amber-900 dark:text-amber-100 mr-3">⏱</span>
                     <span className="text-2xl font-bold text-amber-900 dark:text-amber-100">{timeLeft}s</span>
                     <div className="ml-4 text-sm text-amber-700 dark:text-amber-300">
-                      {(() => {
-                    const eligiblePlayers = players.filter(p => 
-                      !(p.isHost && hostViewMode === 'observe')
-                    );
-                    const answeredPlayers = eligiblePlayers.filter(p => p.hasAnswered);
-                    const totalPlayers = eligiblePlayers.length;
-                    const answeredCount = answeredPlayers.length;
-                    
-                    if (currentPlayer?.isHost && hostViewMode === 'observe') {
-                      // Host sees: "1/2 παίκτες απάντησαν (1 ακόμη περιμένει)"
-                      return `${answeredCount}/${totalPlayers} παίκτες απάντησαν${answeredCount < totalPlayers ? ` (${totalPlayers - answeredCount} ακόμη περιμένει)` : ''}`;
-                    } else {
-                      // Regular players see normal count
-                      return `${answeredCount}/${totalPlayers} απάντησαν`;
-                    }
-                  })()}
+                      {players.filter(p => p.hasAnswered).length}/{players.length} απάντησαν
                     </div>
                   </div>
                 </div>
@@ -815,8 +647,7 @@ export default function RoomPage() {
                     )}
                   </>
                 )}
-              </>
-            )}
+            </>
           </div>
         )}
 
@@ -828,55 +659,34 @@ export default function RoomPage() {
                 Τέλος Παιχνιδιού!
               </h1>
               <div className="bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-6 py-2 inline-block mb-6">
-                <span className="font-bold">Νικητής:</span> {(() => {
-                  const eligiblePlayers = players.filter(p => 
-                    !(p.isHost && hostViewMode === 'observe')
-                  );
-                  return eligiblePlayers.sort((a, b) => b.score - a.score)[0]?.name;
-                })()}
+                <span className="font-bold">Νικητής:</span> {players.sort((a, b) => b.score - a.score)[0]?.name}
               </div>
             </div>
             <div className="space-y-3 max-w-md mx-auto">
-              {(() => {
-                // Filter players based on host mode for finish screen
-                const allPlayers = players.sort((a, b) => {
-                  // Keep consistent ordering: host first, then by name
-                  if (a.isHost && !b.isHost) return -1;
-                  if (!a.isHost && b.isHost) return 1;
-                  return a.name.localeCompare(b.name);
-                });
-                
-                const leaderboardPlayers = allPlayers.filter(p => 
-                  !(p.isHost && hostViewMode === 'observe')
-                );
-                
-                return leaderboardPlayers
-                  .sort((a, b) => b.score - a.score)
-                  .map((p, idx) => (
-                    <div 
-                      key={p.id} 
-                      className={`p-4 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 ${
-                        idx === 0 ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white" :
-                        idx === 1 ? "bg-gradient-to-r from-gray-300 to-gray-500 text-white" :
-                        idx === 2 ? "bg-gradient-to-r from-orange-600 to-orange-800 text-white" :
-                        "bg-white dark:bg-gray-800"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <span className="text-2xl mr-3">
-                            {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`}
-                          </span>
-                          <span className="font-bold">{p.name}</span>
-                          {p.isHost && hostViewMode === 'participate' && (
-                            <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded">Host</span>
-                          )}
-                        </div>
-                        <span className="font-bold text-xl">{p.score} πόντοι</span>
+              {players
+                .sort((a, b) => b.score - a.score)
+                .map((p, idx) => (
+                  <div 
+                    key={p.id} 
+                    className={`p-4 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 ${
+                      idx === 0 ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white" :
+                      idx === 1 ? "bg-gradient-to-r from-gray-300 to-gray-500 text-white" :
+                      idx === 2 ? "bg-gradient-to-r from-orange-600 to-orange-800 text-white" :
+                      "bg-white dark:bg-gray-800"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-3">
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`}
+                        </span>
+                        <span className="font-bold">{p.name}</span>
+                        {p.isHost && <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded">Host</span>}
                       </div>
+                      <span className="font-bold text-xl">{p.score} πόντοι</span>
                     </div>
-                  ));
-              })()}
+                  </div>
+                ))}
             </div>
             {currentPlayer?.isHost && (
               <button
@@ -918,83 +728,44 @@ export default function RoomPage() {
           </div>
           
           <div className="space-y-3">
-            {(() => {
-              // Filter players based on host mode, but keep consistent ordering
-              const allPlayers = players.sort((a, b) => {
-                // Keep consistent ordering: host first, then by name
-                if (a.isHost && !b.isHost) return -1;
-                if (!a.isHost && b.isHost) return 1;
-                return a.name.localeCompare(b.name);
-              });
-              
-              const leaderboardPlayers = allPlayers.filter(p => 
-                !(p.isHost && hostViewMode === 'observe')
-              );
-              
-              // If no eligible players, show empty state
-              if (leaderboardPlayers.length === 0) {
-                return (
-                  <div className="text-center py-8">
-                    <div className="text-amber-700 dark:text-amber-300 text-lg font-semibold">
-                      {hostViewMode === 'observe' && currentPlayer?.isHost 
-                        ? '👁️ Host σε observe mode' 
-                        : '⏳ Αναμονή παικτών...'
-                      }
-                    </div>
-                    <div className="text-amber-600 dark:text-amber-400 text-sm mt-2">
-                      {hostViewMode === 'observe' && currentPlayer?.isHost 
-                        ? 'Το leaderboard θα εμφανίσει όταν παίκτες συνδεθούν' 
-                        : 'Σύνδεση παικτών για να ξεκινήσει το παιχνίδι'
-                      }
-                    </div>
-                  </div>
-                );
-              }
-              
-              return leaderboardPlayers
-                .sort((a, b) => b.score - a.score)
-                .map((p, idx) => {
-                  // Don't show host badge in observe mode (even though host is filtered out)
-                  const showHostBadge = p.isHost && hostViewMode === 'participate';
-                  
-                  return (
-                    <div 
-                      key={p.id} 
-                      className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-                        idx === 0 
-                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
-                          : idx === 1 
-                          ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
-                          : idx === 2 
-                          ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
-                          : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <span className="text-xl mr-2 font-bold">
-                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+            {players
+              .sort((a, b) => b.score - a.score)
+              .map((p, idx) => (
+                <div 
+                  key={p.id} 
+                  className={`p-3 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                    idx === 0 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-2 border-yellow-700' 
+                      : idx === 1 
+                      ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-2 border-gray-600'
+                      : idx === 2 
+                      ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-2 border-orange-900'
+                      : 'bg-white dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <span className="text-xl mr-2 font-bold">
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                      </span>
+                      <div>
+                        <span className="font-bold">{p.name}</span>
+                        {p.isHost && (
+                          <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                            👑
                           </span>
-                          <div>
-                            <span className="font-bold">{p.name}</span>
-                            {showHostBadge && (
-                              <span className="ml-1 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                                👑
-                              </span>
-                            )}
-                            {p.hasAnswered && room.status === 'active' && (
-                              <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
-                                ✓
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="font-bold text-lg">{p.score}</span>
+                        )}
+                        {p.hasAnswered && room.status === 'active' && (
+                          <span className="ml-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                            ✓
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                });
-            })()}
+                    <span className="font-bold text-lg">{p.score}</span>
+                  </div>
+                </div>
+              ))}
           </div>
           
           {/* Game Status Indicator */}
