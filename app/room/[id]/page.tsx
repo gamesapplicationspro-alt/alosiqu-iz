@@ -931,6 +931,26 @@ export default function RoomPage() {
                 !(p.isHost && hostViewMode === 'observe')
               );
               
+              // If no eligible players, show empty state
+              if (leaderboardPlayers.length === 0) {
+                return (
+                  <div className="text-center py-8">
+                    <div className="text-amber-700 dark:text-amber-300 text-lg font-semibold">
+                      {hostViewMode === 'observe' && currentPlayer?.isHost 
+                        ? '👁️ Host σε observe mode' 
+                        : '⏳ Αναμονή παικτών...'
+                      }
+                    </div>
+                    <div className="text-amber-600 dark:text-amber-400 text-sm mt-2">
+                      {hostViewMode === 'observe' && currentPlayer?.isHost 
+                        ? 'Το leaderboard θα εμφανίσει όταν παίκτες συνδεθούν' 
+                        : 'Σύνδεση παικτών για να ξεκινήσει το παιχνίδι'
+                      }
+                    </div>
+                  </div>
+                );
+              }
+              
               return leaderboardPlayers
                 .sort((a, b) => b.score - a.score)
                 .map((p, idx) => (
