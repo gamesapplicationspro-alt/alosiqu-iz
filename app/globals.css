@@ -1,45 +1,124 @@
 @import "tailwindcss";
 
+/* Ancient Greek Historical Theme */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f4e6;
+  --foreground: #2c1810;
+  --parchment: #f5f5dc;
+  --parchment-dark: #ede0c8;
+  --parchment-border: #8b4513;
+  --gold: #daa520;
+  --bronze: #cd7f32;
+  --marble: #f5f5f5;
+  --stone: #708090;
+  --olive: #808000;
+  --purple-royal: #7851a9;
+  --red-ancient: #b22222;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Times New Roman', serif;
+  --font-mono: 'Courier New', monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a0f08;
+    --foreground: #f5f5dc;
+    --parchment: #3d2518;
+    --parchment-dark: #2d1810;
+    --parchment-border: #daa520;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+  font-family: 'Times New Roman', serif;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(218, 165, 32, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 69, 19, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(120, 81, 169, 0.02) 0%, transparent 50%);
 }
 
-/* Custom animations for historic vibe */
+/* Ancient Greek Typography */
+.greek-title {
+  font-family: 'Times New Roman', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--bronze) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.greek-subtitle {
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: var(--purple-royal);
+  font-size: 1.1em;
+}
+
+/* Advanced Animations */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slide-up {
-  from { transform: translateY(30px); opacity: 0; }
+  from { transform: translateY(50px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(218, 165, 32, 0.6), 
+                0 0 20px rgba(218, 165, 32, 0.4),
+                0 0 30px rgba(218, 165, 32, 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 15px rgba(218, 165, 32, 0.8), 
+                0 0 30px rgba(218, 165, 32, 0.6),
+                0 0 45px rgba(218, 165, 32, 0.4);
+  }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { 
+    background: linear-gradient(135deg, var(--gold) 0%, var(--bronze) 100%);
+    transform: scale(1);
+  }
+  50% { 
+    background: linear-gradient(135deg, var(--bronze) 0%, var(--gold) 100%);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes scroll-reveal {
+  from { 
+    opacity: 0;
+    transform: translateY(30px) rotateX(-10deg);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes burn {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .animate-fade-in {
@@ -51,28 +130,191 @@ body {
 }
 
 .animate-glow {
-  animation: glow 2s infinite;
+  animation: glow 3s infinite;
 }
 
-/* Historic parchment effect */
+.animate-pulse-gold {
+  animation: pulse-gold 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-scroll-reveal {
+  animation: scroll-reveal 1.5s ease-out;
+}
+
+/* Ancient UI Components */
 .parchment-bg {
-  background: linear-gradient(135deg, #f5f5dc 0%, #ede0c8 50%, #d2b48c 100%);
-  border: 2px solid #8b4513;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+  background: 
+    linear-gradient(135deg, var(--parchment) 0%, var(--parchment-dark) 50%, var(--parchment) 100%);
+  border: 3px solid var(--parchment-border);
+  border-radius: 8px;
+  box-shadow: 
+    inset 0 0 20px rgba(0,0,0,0.1),
+    0 10px 30px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.parchment-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.03) 2px,
+      rgba(139, 69, 19, 0.03) 4px
+    );
+  pointer-events: none;
 }
 
 .dark .parchment-bg {
-  background: linear-gradient(135deg, #2d1810 0%, #3d2518 50%, #4a2c1a 100%);
-  border: 2px solid #daa520;
+  background: 
+    linear-gradient(135deg, var(--parchment) 0%, var(--parchment-dark) 50%, var(--parchment) 100%);
+  border: 3px solid var(--gold);
+  box-shadow: 
+    inset 0 0 20px rgba(0,0,0,0.3),
+    0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* Mobile optimizations */
+.marble-bg {
+  background: 
+    linear-gradient(135deg, var(--marble) 0%, #e8e8e8 25%, var(--marble) 50%, #d3d3d3 75%, var(--marble) 100%);
+  border: 2px solid var(--stone);
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.5),
+    inset 0 -2px 4px rgba(0,0,0,0.1),
+    0 8px 16px rgba(0,0,0,0.15);
+}
+
+.bronze-button {
+  background: linear-gradient(135deg, var(--bronze) 0%, #b8860b 50%, var(--bronze) 100%);
+  border: 2px solid #8b4513;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 
+    0 4px 6px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.bronze-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.bronze-button:hover::before {
+  left: 100%;
+}
+
+.bronze-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 12px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  background: linear-gradient(135deg, #b8860b 0%, var(--bronze) 50%, #b8860b 100%);
+}
+
+.gold-button {
+  background: linear-gradient(135deg, var(--gold) 0%, #ffd700 50%, var(--gold) 100%);
+  border: 2px solid #b8860b;
+  border-radius: 8px;
+  color: var(--foreground);
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 
+    0 4px 6px rgba(184, 134, 11, 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  transition: all 0.3s ease;
+}
+
+.gold-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 12px rgba(184, 134, 11, 0.6),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+  background: linear-gradient(135deg, #ffd700 0%, var(--gold) 50%, #ffd700 100%);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--parchment-dark);
+  border: 1px solid var(--parchment-border);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--bronze) 0%, var(--gold) 100%);
+  border: 1px solid var(--parchment-border);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--bronze) 100%);
+}
+
+/* Ancient Pattern Backgrounds */
+.pattern-greek-key {
+  background-image: 
+    repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(218, 165, 32, 0.05) 35px, rgba(218, 165, 32, 0.05) 70px),
+    repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(139, 69, 19, 0.03) 35px, rgba(139, 69, 19, 0.03) 70px);
+}
+
+.pattern-marble {
+  background-image: 
+    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(112, 128, 144, 0.03) 10px, rgba(112, 128, 144, 0.03) 20px),
+    repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(112, 128, 144, 0.03) 10px, rgba(112, 128, 144, 0.03) 20px);
+}
+
+/* Mobile Responsive Enhancements */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  .greek-title {
+    font-size: 1.5em;
+  }
+  
+  .parchment-bg {
+    border-width: 2px;
+    margin: 8px;
+  }
+}
+
 @media (max-width: 640px) {
   body {
     font-size: 14px;
   }
   
-  /* Prevent zoom on input focus on iOS */
+  .greek-title {
+    font-size: 1.3em;
+    letter-spacing: 0.02em;
+  }
+  
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -80,4 +322,84 @@ body {
   select {
     font-size: 16px;
   }
+  
+  .bronze-button,
+  .gold-button {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+/* Loading States */
+.loading-ancient {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-ancient::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.3), transparent);
+  animation: burn 2s infinite;
+}
+
+/* Error States */
+.error-parchment {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 50%, #ff6b6b 100%);
+  border: 3px solid #c92a2a;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Success States */
+.success-parchment {
+  background: linear-gradient(135deg, #51cf66 0%, #40c057 50%, #51cf66 100%);
+  border: 3px solid #2f9e44;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Interactive Elements */
+.interactive-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+}
+
+/* Ancient Decorations */
+.ancient-border {
+  border: 2px solid var(--parchment-border);
+  border-radius: 8px;
+  position: relative;
+}
+
+.ancient-border::before,
+.ancient-border::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gold);
+}
+
+.ancient-border::before {
+  top: -12px;
+  left: -12px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.ancient-border::after {
+  bottom: -12px;
+  right: -12px;
+  border-left: none;
+  border-top: none;
 }

@@ -13,7 +13,6 @@ export interface Question {
 export interface Room {
   id: string;
   code: string;
-  hostId: string;
   questions: Question[];
   currentQuestionIndex: number;
   status: 'waiting' | 'active' | 'finished';

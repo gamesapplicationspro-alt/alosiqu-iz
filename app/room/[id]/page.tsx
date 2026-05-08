@@ -132,12 +132,11 @@ export default function RoomPage() {
     if (room && players.length > 0 && playerId) {
       const player = players.find((p) => p.id === playerId);
       if (player) {
-        // Smart host detection: check if player ID matches room's hostId OR if player has isHost flag
-        const isHost = room.hostId === player.id || player.isHost;
+        // Smart host detection: check if player has isHost flag
+        const isHost = player.isHost;
         
         console.log("Host detection:", { 
           playerId, 
-          roomHostId: room.hostId, 
           playerIsHost: player.isHost, 
           finalIsHost: isHost,
           playerName: player.name 
