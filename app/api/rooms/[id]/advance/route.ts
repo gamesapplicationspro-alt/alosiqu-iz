@@ -43,7 +43,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (expectedVersion !== null && before.version !== expectedVersion) {
       return Response.json({ advanced: false, phase: before.phase, version: before.version });
     }
-    const next = phaseAfterDeadline(before, correctAnswerId, now);
+    const players = before.phase === "question"
+      ? ((await db.ref(`v3/players/${id}`).get()).val() || {}) as Record<string, V3Player>
+      : null;
+    const activePlayers = players ? Object.values(players).filter((player) => player.participates) : [];
+    const everyoneAnswered = before.phase === "question" && activePlayers.length > 0 && activePlayers.every((player) => player.answeredRound === before.round);
+    const transitionSource = everyoneAnswered ? { ...before, phaseEndsAt: now } : before;
+    const next = phaseAfterDeadline(transitionSource, correctAnswerId, now);
     if (!next) return Response.json({ advanced: false, phase: before.phase, version: before.version });
     await roomRef.update(next);
     if (next.phase === "finished") await saveHistory(id, next);
