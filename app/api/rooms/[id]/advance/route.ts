@@ -37,19 +37,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const correctAnswerId = before.phase === "question"
       ? ((await db.ref(`v3/privateRooms/${id}/questions/${before.questionIndex}`).get()).val() as { correctAnswerId?: string } | null)?.correctAnswerId ?? null
       : before.revealCorrectAnswerId;
-    let transitionedToFinished: V3Room | null = null;
-    const result = await roomRef.transaction((current: V3Room | null) => {
-      if (!current || isExpired(current, now) || (expectedVersion !== null && current.version !== expectedVersion)) return;
-      const next = phaseAfterDeadline(current, correctAnswerId, now);
-      if (!next) return;
-      return next;
-    });
-    const room = result.snapshot.val() as V3Room | null;
-    if (!room) throw new PublicApiError("Το δωμάτιο δεν βρέθηκε ή έχει λήξει.", 404);
-
-    if (result.committed && room.phase === "finished") transitionedToFinished = room;
-    if (transitionedToFinished) await saveHistory(id, transitionedToFinished);
-    return Response.json({ advanced: result.committed, phase: room.phase, version: room.version });
+    // This operation is deliberately idempotent. Every connected member may ask
+    // for a transition; duplicate requests write the same next version and never
+    // skip a phase. This avoids exposing RTDB transaction aborts as game failures.
+    if (expectedVersion !== null && before.version !== expectedVersion) {
+      return Response.json({ advanced: false, phase: before.phase, version: before.version });
+    }
+    const next = phaseAfterDeadline(before, correctAnswerId, now);
+    if (!next) return Response.json({ advanced: false, phase: before.phase, version: before.version });
+    await roomRef.update(next);
+    if (next.phase === "finished") await saveHistory(id, next);
+    return Response.json({ advanced: true, phase: next.phase, version: next.version });
   } catch (error) {
     return apiError(error);
   }

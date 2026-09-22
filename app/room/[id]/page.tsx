@@ -63,10 +63,17 @@ export default function RoomPage() {
   useEffect(() => { setSelected(null); advancedVersion.current = null; }, [room?.round]);
 
   useEffect(() => {
-    if (!room?.phaseEndsAt || room.phase === "lobby" || room.phase === "finished" || seconds > 0 || advancedVersion.current === room.version) return;
+    if (!room?.phaseEndsAt || room.phase === "lobby" || room.phase === "finished" || seconds > 0 || Date.now() < room.phaseEndsAt + 750 || advancedVersion.current === room.version) return;
     advancedVersion.current = room.version;
     void secureRequest(`/api/rooms/${roomId}/advance`, { method: "POST", body: JSON.stringify({ expectedVersion: room.version }) })
-      .catch((cause) => setError(cause instanceof Error ? cause.message : "Δεν έγινε η μετάβαση φάσης."));
+      .then((result) => {
+        if (!result.advanced) window.setTimeout(() => { if (advancedVersion.current === room.version) advancedVersion.current = null; }, 1000);
+      })
+      .catch((cause) => {
+        const message = cause instanceof Error ? cause.message : "Δεν έγινε η μετάβαση φάσης.";
+        if (message.includes("δεν βρέθηκε") || message.includes("έχει λήξει")) setRoom(null);
+        setError(message);
+      });
   }, [room, roomId, seconds]);
 
   const list = useMemo(() => Object.entries(players).map(([id, player]) => ({ id, ...player })), [players]);
