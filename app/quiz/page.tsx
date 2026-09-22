@@ -88,9 +88,7 @@ export default function QuizPage() {
     if (storedName) {
       dispatch({ type: "SET_PLAYER_NAME", payload: storedName });
     } else {
-      // Redirect to home if no player name
-      window.location.href = '/';
-      return;
+      dispatch({ type: "SET_PLAYER_NAME", payload: "Παίκτης" });
     }
     
     // Shuffle and set questions
