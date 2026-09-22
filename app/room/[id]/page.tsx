@@ -120,6 +120,11 @@ export default function RoomPage() {
     setSelected(answerId);
     const result = await action(`/api/rooms/${roomId}/answer`, { answerId });
     if (!result) { setSelected(null); return; }
+    if (!result.accepted) {
+      setSelected(null);
+      setError("Ο χρόνος της ερώτησης έληξε. Πάμε στην αποκάλυψη.");
+      return;
+    }
     // The last answer may end the question early; the server verifies this.
     void secureRequest(`/api/rooms/${roomId}/advance`, { method: "POST", body: JSON.stringify({ expectedVersion: room.version }) }).catch(() => undefined);
   }

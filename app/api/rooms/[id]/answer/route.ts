@@ -20,8 +20,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const db = adminDb();
     const room = (await db.ref(`v3/rooms/${id}`).get()).val() as V3Room | null;
     const now = Date.now();
-    if (!room || isExpired(room, now) || room.phase !== "question" || !room.phaseEndsAt || room.phaseEndsAt <= now) {
-      throw new PublicApiError("Η ερώτηση δεν είναι πλέον ενεργή.", 409);
+    if (!room || isExpired(room, now)) {
+      throw new PublicApiError("Το δωμάτιο δεν βρέθηκε ή έχει λήξει.", 404);
+    }
+    // Reaching the server a fraction after the deadline is a normal quiz race,
+    // not an application error. Return a successful, explicit game outcome.
+    if (room.phase !== "question" || !room.phaseEndsAt || room.phaseEndsAt <= now) {
+      return Response.json({ accepted: false, expired: true });
     }
     const [privateSnapshot, playerSnapshot] = await Promise.all([
       db.ref(`v3/privateRooms/${id}/questions/${room.questionIndex}`).get(),
