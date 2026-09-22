@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { adminDb } from "@server/server/firebase-admin";
 import { isExpired, requireV3Member, type V3Player, type V3Room } from "@server/server/game";
-import { scoreForAnswer } from "@/lib/game-phases";
 import { apiError, assertSameOrigin, enforceRateLimit, PublicApiError, requireVerifiedClient } from "@server/server/request-auth";
 
 export const runtime = "nodejs";
@@ -39,17 +38,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const answerRef = db.ref(`v3/answers/${id}/${uid}/${room.round}`);
     const answerWrite = await answerRef.transaction((existing) => existing ?? { answerId, submittedAt: now });
-    const savedAnswer = answerWrite.snapshot.val() as { answerId: string; submittedAt: number };
-    const correct = savedAnswer.answerId === privateQuestion.correctAnswerId;
-    const points = correct ? scoreForAnswer(room.phaseEndsAt - savedAnswer.submittedAt) : 0;
-
     const playerRef = db.ref(`v3/players/${id}/${uid}`);
-    const scoreWrite = await playerRef.transaction((current: V3Player | null) => {
-      if (!current || current.lastScoredRound >= room.round) return;
-      return { ...current, score: current.score + points, answeredRound: room.round, lastScoredRound: room.round };
+    const playerWrite = await playerRef.transaction((current: V3Player | null) => {
+      if (!current || current.answeredRound >= room.round) return;
+      // Scores are settled only once the question closes. That prevents a live
+      // score change from revealing whether this private answer was correct.
+      return { ...current, answeredRound: room.round };
     });
-    const replayed = !answerWrite.committed || !scoreWrite.committed;
-    return Response.json({ accepted: true, replayed });
+    const replayed = !answerWrite.committed || !playerWrite.committed;
+    return Response.json({ accepted: true, replayed, answeredRound: room.round });
   } catch (error) {
     return apiError(error);
   }

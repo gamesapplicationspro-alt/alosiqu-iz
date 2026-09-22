@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminDb } from "@server/server/firebase-admin";
 import { isExpired, phaseAfterDeadline, requireV3Member, type V3Player, type V3Room } from "@server/server/game";
+import { scoreForAnswer } from "@/lib/game-phases";
 import { apiError, assertSameOrigin, enforceRateLimit, PublicApiError, requireVerifiedClient } from "@server/server/request-auth";
 
 export const runtime = "nodejs";
@@ -51,6 +52,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const transitionSource = everyoneAnswered ? { ...before, phaseEndsAt: now } : before;
     const next = phaseAfterDeadline(transitionSource, correctAnswerId, now);
     if (!next) return Response.json({ advanced: false, phase: before.phase, version: before.version });
+    if (before.phase === "question" && next.phase === "reveal") {
+      const answers = (await db.ref(`v3/answers/${id}`).get()).val() as Record<string, Record<string, { answerId: string; submittedAt: number }>> | null;
+      await Promise.all(Object.entries(players || {}).map(async ([playerId, player]) => {
+        if (!player.participates) return;
+        const answer = answers?.[playerId]?.[String(before.round)];
+        const points = answer?.answerId === correctAnswerId && before.phaseEndsAt
+          ? scoreForAnswer(before.phaseEndsAt - answer.submittedAt)
+          : 0;
+        await db.ref(`v3/players/${id}/${playerId}`).transaction((current: V3Player | null) => {
+          if (!current || current.lastScoredRound >= before.round) return;
+          return { ...current, score: current.score + points, lastScoredRound: before.round };
+        });
+      }));
+    }
     await roomRef.update(next);
     if (next.phase === "finished") await saveHistory(id, next);
     return Response.json({ advanced: true, phase: next.phase, version: next.version });
