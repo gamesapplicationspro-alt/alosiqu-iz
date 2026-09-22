@@ -53,6 +53,29 @@ export default function RoomPage() {
     return () => { stopRoom?.(); stopPlayers?.(); stopMember?.(); };
   }, [roomId]);
 
+  // Firebase listeners give instant updates; this authenticated no-cache sync is
+  // the reliability backstop for browsers that suspend or lose a websocket.
+  useEffect(() => {
+    let cancelled = false;
+    async function refreshState() {
+      try {
+        const state = await secureRequest(`/api/rooms/${roomId}/state`, { method: "GET" });
+        if (cancelled) return;
+        setRoom(state.room as Room);
+        setPlayers(state.players as Record<string, Player>);
+        setRole(state.role as "host" | "player");
+      } catch (cause) {
+        if (cancelled) return;
+        const message = cause instanceof Error ? cause.message : "Αδυναμία συγχρονισμού παιχνιδιού.";
+        if (message.includes("δεν βρέθηκε") || message.includes("έχει λήξει")) setRoom(null);
+        setError(message);
+      }
+    }
+    void refreshState();
+    const interval = window.setInterval(() => void refreshState(), 2_000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [roomId]);
+
   useEffect(() => {
     const tick = () => setSeconds(room?.phaseEndsAt ? Math.max(0, Math.ceil((room.phaseEndsAt - Date.now()) / 1000)) : 0);
     tick();
