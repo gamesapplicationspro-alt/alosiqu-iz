@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { secureRequest } from "../lib/session";
 
 export default function CreateRoom() {
   const [roomCode, setRoomCode] = useState("");
+  const [playerName, setPlayerName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPlayerName(localStorage.getItem("playerName")?.trim() || "");
+  }, []);
 
   const generateCode = () => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -14,12 +19,13 @@ export default function CreateRoom() {
   };
 
   const createRoom = async () => {
-    if (!roomCode) return;
+    if (!roomCode || !playerName.trim()) return;
     setLoading(true);
     setError(null);
     
     try {
-      const hostName = localStorage.getItem("playerName")?.trim() || "Host";
+      const hostName = playerName.trim();
+      localStorage.setItem("playerName", hostName);
       const result = await secureRequest("/api/rooms", {
         method: "POST",
         body: JSON.stringify({ name: hostName, code: roomCode }),
@@ -47,6 +53,15 @@ export default function CreateRoom() {
         </div>
         <input
           type="text"
+          value={playerName}
+          onChange={(e) => setPlayerName(e.target.value)}
+          placeholder="Το nickname σας"
+          className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
+          maxLength={20}
+          autoComplete="nickname"
+        />
+        <input
+          type="text"
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
           placeholder="Κωδικός Δωματίου"
@@ -63,7 +78,7 @@ export default function CreateRoom() {
         
         <button
           onClick={createRoom}
-          disabled={!roomCode || loading}
+          disabled={!roomCode || !playerName.trim() || loading}
           className="w-full rounded-lg bg-gradient-to-r from-green-600 to-green-800 px-4 py-3 text-white font-semibold hover:from-green-700 hover:to-green-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none text-sm sm:text-base"
         >
           {loading ? "Δημιουργία..." : "Δημιουργία Δωματίου"}

@@ -28,7 +28,7 @@ type Action =
   | { type: "SET_TIMER"; payload: number }
   | { type: "SHOW_RESULT" }
   | { type: "HIDE_RESULT" }
-  | { type: "SET_COMPLETED" }
+  | { type: "SET_COMPLETED"; payload: boolean }
   | { type: "SET_PLAYER_NAME"; payload: string }
   | { type: "SET_LOADING"; payload: boolean };
 
@@ -69,7 +69,7 @@ function quizReducer(state: State, action: Action): State {
     case "HIDE_RESULT":
       return { ...state, showResult: false };
     case "SET_COMPLETED":
-      return { ...state, isCompleted: true };
+      return { ...state, isCompleted: action.payload };
     case "SET_PLAYER_NAME":
       return { ...state, playerName: action.payload };
     case "SET_LOADING":
@@ -117,42 +117,33 @@ export default function QuizPage() {
   const currentQuestion = state.questions[state.currentIndex];
 
   const handleAnswerSelect = (answerId: string) => {
-    if (state.showResult) return;
+    if (state.selectedAnswer || !currentQuestion || state.showResult) return;
     dispatch({ type: "SET_SELECTED_ANSWER", payload: answerId });
-  };
-
-  const handleAnswerSubmit = useCallback(() => {
-    if (!state.selectedAnswer || !currentQuestion || state.showResult) return;
-
-    dispatch({ type: "SHOW_RESULT" });
-
-    const isCorrect = state.selectedAnswer === currentQuestion.correctAnswerId;
-    if (isCorrect) {
+    if (answerId === currentQuestion.correctAnswerId) {
       dispatch({ type: "SET_SCORE", payload: state.score + 1 });
     }
+  };
 
-    // Move to next question after delay
-    setTimeout(() => {
-      if (state.currentIndex < state.questions.length - 1) {
-        dispatch({ type: "SET_CURRENT_INDEX", payload: state.currentIndex + 1 });
-      } else {
-        dispatch({ type: "SET_COMPLETED" });
-      }
-    }, 2000);
-  }, [currentQuestion, state.currentIndex, state.questions.length, state.score, state.selectedAnswer, state.showResult]);
+  const goToNextQuestion = useCallback(() => {
+    if (state.currentIndex < state.questions.length - 1) {
+      dispatch({ type: "SET_CURRENT_INDEX", payload: state.currentIndex + 1 });
+    } else {
+      dispatch({ type: "SET_COMPLETED", payload: true });
+    }
+  }, [state.currentIndex, state.questions.length]);
 
   useEffect(() => {
-    if (state.timeLeft === 0 && !state.showResult && state.questions.length > 0) {
-      handleAnswerSubmit();
+    if (state.timeLeft === 0 && state.questions.length > 0) {
+      goToNextQuestion();
     }
-  }, [handleAnswerSubmit, state.timeLeft, state.showResult, state.questions.length]);
+  }, [goToNextQuestion, state.timeLeft, state.questions.length]);
 
   const restartQuiz = () => {
     const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
     dispatch({ type: "SET_QUESTIONS", payload: shuffledQuestions });
     dispatch({ type: "SET_CURRENT_INDEX", payload: 0 });
     dispatch({ type: "SET_SCORE", payload: 0 });
-    dispatch({ type: "SET_COMPLETED" });
+    dispatch({ type: "SET_COMPLETED", payload: false });
     dispatch({ type: "SET_TIMER", payload: 15 });
   };
 
@@ -284,6 +275,13 @@ export default function QuizPage() {
 
             {/* Navigation */}
             <div className="text-center mt-8 space-y-4">
+              <button
+                onClick={goToNextQuestion}
+                disabled={!state.selectedAnswer}
+                className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-amber-700 hover:to-yellow-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:px-8 sm:text-lg"
+              >
+                {state.currentIndex + 1 === state.questions.length ? "Ολοκλήρωση" : "Επόμενο"}
+              </button>
               <button
                 onClick={() => window.location.href = '/'}
                 className="text-foreground/60 hover:text-gold transition-colors underline text-sm"
