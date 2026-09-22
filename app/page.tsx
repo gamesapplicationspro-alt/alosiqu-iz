@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { validateRoomCode, validatePlayerName, sanitizeInput } from "../lib/security";
 
 export default function HomePage() {
@@ -119,7 +118,7 @@ export default function HomePage() {
             <div className="parchment-bg p-6 interactive-card animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <div className="text-center">
                 <div className="text-4xl mb-4 animate-float">🏛️</div>
-                <h2 className="greek-title text-xl mb-3">Μόνος Πάικτης</h2>
+                <h2 className="greek-title text-xl mb-3">Ένας Παίκτης</h2>
                 <p className="text-foreground/80 mb-6 text-sm">
                   Δοκιμάστε τις γνώσεις σας μόνοι σας στην πρόκληση της ιστορίας
                 </p>
@@ -207,14 +206,14 @@ export default function HomePage() {
                 <div className="text-3xl mb-3 text-bronze">⚡</div>
                 <h3 className="font-bold text-lg mb-2">Γρήγορο Παιχνίδι</h3>
                 <p className="text-foreground/70 text-sm">
-                  Πραγματικός χρόνος και ανταγωνισμός μεταξύ παικτών
+                  Παιχνίδι σε πραγματικό χρόνο με όλη την τάξη
                 </p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-3 text-purple-royal">🏆</div>
                 <h3 className="font-bold text-lg mb-2">Κατάταξη</h3>
                 <p className="text-foreground/70 text-sm">
-                  Ζωντανή κατάταξη και στατιστικά για όλους τους παίκτες
+                  Ζωντανή κατάταξη για όλους τους παίκτες
                 </p>
               </div>
               <div className="text-center">
@@ -237,18 +236,12 @@ export default function HomePage() {
           </div>
           <p className="text-foreground/70 text-sm max-w-2xl mx-auto">
             Ένα εκπαιδευτικό παιχνίδι γνώσης εμπνευσμένο από την αρχαία ελληνική ιστορία και φιλοσοφία.
-            Μαθήτε, παίξτε και γίνετε μάρτυρες της ιστορίας!
+            Μάθετε, παίξτε και γίνετε μάρτυρες της ιστορίας!
           </p>
           <div className="mt-6 flex justify-center space-x-8 text-foreground/60 text-sm">
-            <Link href="/about" className="hover:text-gold transition-colors">
-              Σχετικά με το Παιχνίδι
-            </Link>
-            <Link href="/history" className="hover:text-gold transition-colors">
-              Ιστορικό Αγώνα
-            </Link>
-            <Link href="/leaderboard" className="hover:text-gold transition-colors">
-              Πίνακας Κατάταξης
-            </Link>
+            <a href="/history" className="hover:text-gold transition-colors">
+              Προσωπικό Ιστορικό
+            </a>
           </div>
         </div>
       </footer>

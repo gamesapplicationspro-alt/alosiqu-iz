@@ -164,7 +164,7 @@ export const validateRoomAccess = (roomCode: string, playerId?: string): Validat
 };
 
 // Game state validation
-export const validateGameState = (room: any): ValidationResult => {
+export const validateGameState = (room: { questions?: unknown } | null | undefined): ValidationResult => {
   if (!room || typeof room !== 'object') {
     return { isValid: false, error: 'Μη έγκυρη κατάσταση δωματίου' };
   }

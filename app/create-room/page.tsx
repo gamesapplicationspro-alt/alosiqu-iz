@@ -1,11 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ref, set, push } from "firebase/database";
-import { getDb } from "../lib/firebase";
-import { QUESTIONS } from "../lib/questions";
-import { Room, Player } from "../types";
 import { validatePlayerName, sanitizeInput } from "../../lib/security";
+import { secureRequest } from "../lib/session";
 
 export default function CreateRoom() {
   const [roomCode, setRoomCode] = useState("");
@@ -50,49 +47,12 @@ export default function CreateRoom() {
     setError(null);
     
     try {
-      const db = await getDb();
-      const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
-
-      // Create a new room with auto-generated ID using push
-      const roomRef = push(ref(db, "rooms"));
-      if (!roomRef.key) throw new Error("Unable to create room id");
-
-      const newRoom: Room = {
-        id: roomRef.key,
-        code: roomCode,
-        status: "waiting",
-        currentQuestionIndex: 0,
-        timer: 15,
-        questions: shuffledQuestions,
-        createdAt: new Date().toISOString(),
-      };
-
-      // Set the room data
-      await set(roomRef, newRoom);
-
-      // Create host player
-      const playerRef = push(ref(db, "players"));
-      if (!playerRef.key) throw new Error("Unable to create player id");
-
-      const hostPlayer: Player = {
-        id: playerRef.key,
-        name: nameValidation.sanitized!,
-        score: 0,
-        roomId: roomRef.key,
-        answers: [],
-        isHost: true,
-        hasAnswered: false,
-      };
-
-      await set(playerRef, hostPlayer);
-
-      // Store player info and redirect
-      localStorage.setItem('playerId', playerRef.key);
       localStorage.setItem('playerName', nameValidation.sanitized!);
-      localStorage.setItem('isHost', 'true');
-
-      // Redirect to the room
-      window.location.href = `/room/${roomRef.key}`;
+      const result = await secureRequest("/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({ name: nameValidation.sanitized, code: roomCode }),
+      });
+      window.location.href = `/room/${result.roomId}`;
     } catch (err) {
       console.error("Error creating room:", err);
       setError("Αποτυχία δημιουργίας δωματίου. Παρακαλώ δοκιμάστε ξανά.");
@@ -121,7 +81,7 @@ export default function CreateRoom() {
           {/* Host Name Input */}
           <div className="marble-bg p-6 md:p-8 mb-8 animate-scroll-reveal">
             <label htmlFor="hostName" className="block text-lg font-bold mb-3 text-foreground">
-              Το Όνομά του Αρχιτέκτονα
+              Το όνομα του Αρχιτέκτονα
             </label>
             <input
               id="hostName"
@@ -204,7 +164,7 @@ export default function CreateRoom() {
               </div>
               <div className="flex items-start">
                 <span className="text-gold mr-2">2.</span>
-                <span>Μοιραστείστε τον κωδικό με τους παίκτες που θέλετε να προσκαλέσετε</span>
+                <span>Μοιραστείτε τον κωδικό με τους παίκτες που θέλετε να προσκαλέσετε</span>
               </div>
               <div className="flex items-start">
                 <span className="text-gold mr-2">3.</span>

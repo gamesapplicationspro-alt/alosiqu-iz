@@ -1,14 +1,11 @@
 "use client";
 
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useCallback, useEffect, useReducer } from "react";
 import { QUESTIONS } from "../lib/questions";
 import QuestionCard from "./components/QuestionCard";
 import ProgressBar from "./components/ProgressBar";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ref } from "firebase/database";
-import { getDb } from "../lib/firebase";
 import { Question } from "../types";
-import { validatePlayerName, sanitizeInput } from "../../lib/security";
 
 interface State {
   questions: Question[];
@@ -84,7 +81,6 @@ function quizReducer(state: State, action: Action): State {
 
 export default function QuizPage() {
   const [state, dispatch] = useReducer(quizReducer, initialState);
-  const [error, setError] = useState<string | null>();
 
   useEffect(() => {
     // Get stored player name
@@ -120,12 +116,6 @@ export default function QuizPage() {
     return () => clearInterval(timer);
   }, [state.currentIndex, state.questions.length, state.isCompleted]);
 
-  useEffect(() => {
-    if (state.timeLeft === 0 && !state.showResult && state.questions.length > 0) {
-      handleAnswerSubmit();
-    }
-  }, [state.timeLeft, state.showResult, state.questions.length]);
-
   const currentQuestion = state.questions[state.currentIndex];
 
   const handleAnswerSelect = (answerId: string) => {
@@ -133,7 +123,7 @@ export default function QuizPage() {
     dispatch({ type: "SET_SELECTED_ANSWER", payload: answerId });
   };
 
-  const handleAnswerSubmit = async () => {
+  const handleAnswerSubmit = useCallback(() => {
     if (!state.selectedAnswer || !currentQuestion || state.showResult) return;
 
     dispatch({ type: "SHOW_RESULT" });
@@ -143,52 +133,21 @@ export default function QuizPage() {
       dispatch({ type: "SET_SCORE", payload: state.score + 1 });
     }
 
-    // Save to Firebase if logged in
-    try {
-      const db = await getDb();
-      const playerId = localStorage.getItem('playerId');
-      if (playerId) {
-        // This would save to player's history
-        console.log('Saving quiz result to Firebase');
-      }
-    } catch (err) {
-      console.error('Error saving to Firebase:', err);
-    }
-
     // Move to next question after delay
     setTimeout(() => {
       if (state.currentIndex < state.questions.length - 1) {
         dispatch({ type: "SET_CURRENT_INDEX", payload: state.currentIndex + 1 });
       } else {
         dispatch({ type: "SET_COMPLETED" });
-        saveScoreToHistory();
       }
     }, 2000);
-  };
+  }, [currentQuestion, state.currentIndex, state.questions.length, state.score, state.selectedAnswer, state.showResult]);
 
-  const saveScoreToHistory = async () => {
-    try {
-      const db = await getDb();
-      const playerId = localStorage.getItem('playerId');
-      
-      if (playerId) {
-        // Save to player's quiz history
-        const historyRef = ref(db, `quizHistory/${playerId}`);
-        const newEntry = {
-          score: state.score,
-          totalQuestions: state.questions.length,
-          percentage: Math.round((state.score / state.questions.length) * 100),
-          date: new Date().toISOString(),
-          playerName: state.playerName
-        };
-        
-        // This would push to Firebase
-        console.log('Saving to history:', newEntry);
-      }
-    } catch (err) {
-      console.error('Error saving history:', err);
+  useEffect(() => {
+    if (state.timeLeft === 0 && !state.showResult && state.questions.length > 0) {
+      handleAnswerSubmit();
     }
-  };
+  }, [handleAnswerSubmit, state.timeLeft, state.showResult, state.questions.length]);
 
   const restartQuiz = () => {
     const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);

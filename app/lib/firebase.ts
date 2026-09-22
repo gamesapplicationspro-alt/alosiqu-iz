@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getDatabase, Database, ref, set, get, push, onValue, query, orderByChild, equalTo, update, off } from "firebase/database";
 
 const firebaseConfig = {
@@ -11,7 +11,7 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
-function hasMinimumFirebaseConfig(config: any): boolean {
+function hasMinimumFirebaseConfig(config: FirebaseOptions): boolean {
   return !!(config.apiKey && config.projectId && config.databaseURL);
 }
 

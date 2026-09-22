@@ -60,6 +60,11 @@ results are logged to the console instead.
 
 ## Deploy on Vercel
 
+For the required Firebase Authentication, App Check, Realtime Database Rules, Vercel
+environment variables, backup and production checklist, follow
+[DEPLOYMENT_SECURITY_GUIDE.md](DEPLOYMENT_SECURITY_GUIDE.md). Do not use Firebase test
+mode in production.
+
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 1. Connect your GitHub repository in the Vercel dashboard.

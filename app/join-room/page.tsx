@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { query, orderByChild, equalTo, get, ref, set, push } from "firebase/database";
-import { getDb } from "../lib/firebase";
-import { Room, Player } from "../types";
 import { validateRoomCode, validatePlayerName, sanitizeInput } from "../../lib/security";
 import { useSearchParams } from "next/navigation";
+import { secureRequest } from "../lib/session";
 
 function JoinRoomContent() {
   const searchParams = useSearchParams();
@@ -53,51 +51,12 @@ function JoinRoomContent() {
     setError(null);
     
     try {
-      const db = await getDb();
-      
-      // Query rooms by code
-      const roomsRef = ref(db, "rooms");
-      const roomsQuery = query(roomsRef, orderByChild("code"), equalTo(codeValidation.sanitized!));
-      const snapshot = await get(roomsQuery);
-      
-      if (snapshot.exists()) {
-        // Get the room ID from the snapshot key
-        const roomData = snapshot.val();
-        const roomId = Object.keys(roomData)[0];
-        const room = roomData[roomId] as Room;
-        
-        // Check if room is still joinable
-        if (room.status === "finished") {
-          setError("Αυτό το δωμάτιο έχει ολοκληρωθεί. Δημιουργήστε ένα νέο.");
-          return;
-        }
-        
-        // Create new player
-        const playerRef = push(ref(db, "players"));
-        if (!playerRef.key) throw new Error("Unable to create player id");
-
-        const newPlayer: Player = {
-          id: playerRef.key,
-          name: nameValidation.sanitized!,
-          score: 0,
-          roomId: roomId,
-          answers: [],
-          isHost: false,
-          hasAnswered: false,
-        };
-
-        await set(playerRef, newPlayer);
-
-        // Store player info and redirect
-        localStorage.setItem('playerId', playerRef.key);
-        localStorage.setItem('playerName', nameValidation.sanitized!);
-        localStorage.setItem('isHost', 'false');
-
-        // Redirect to room
-        window.location.href = `/room/${roomId}`;
-      } else {
-        setError("Ο κωδικός δωματίου δεν βρέθηκε. Ελέγξτε και δοκιμάστε ξανά.");
-      }
+      localStorage.setItem('playerName', nameValidation.sanitized!);
+      const result = await secureRequest("/api/rooms/join", {
+        method: "POST",
+        body: JSON.stringify({ name: nameValidation.sanitized, code: codeValidation.sanitized }),
+      });
+      window.location.href = `/room/${result.roomId}`;
     } catch (err) {
       console.error("Error joining room:", err);
       setError("Αποτυχία εισόδου στο δωμάτιο. Παρακαλώ δοκιμάστε ξανά.");
