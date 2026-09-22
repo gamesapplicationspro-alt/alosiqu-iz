@@ -14,15 +14,25 @@ export async function requireVerifiedClient(request: NextRequest) {
   if (!bearer?.startsWith("Bearer ") || !appCheckToken) {
     throw new RequestAuthError("Authentication is required.");
   }
+  let identity;
   try {
-    const [identity] = await Promise.all([
-      adminAuth().verifyIdToken(bearer.slice(7), true),
-      adminAppCheck().verifyToken(appCheckToken),
-    ]);
-    return { uid: identity.uid };
-  } catch {
+    identity = await adminAuth().verifyIdToken(bearer.slice(7), true);
+  } catch (error) {
+    console.error("Firebase Auth token verification failed", {
+      code: typeof error === "object" && error && "code" in error ? error.code : "unknown",
+    });
     throw new RequestAuthError("Η ασφαλής ταυτοποίηση απέτυχε.");
   }
+
+  try {
+    await adminAppCheck().verifyToken(appCheckToken);
+  } catch (error) {
+    console.error("Firebase App Check token verification failed", {
+      code: typeof error === "object" && error && "code" in error ? error.code : "unknown",
+    });
+    throw new RequestAuthError("Η ασφαλής ταυτοποίηση απέτυχε.");
+  }
+  return { uid: identity.uid };
 }
 
 export function assertSameOrigin(request: NextRequest) {
