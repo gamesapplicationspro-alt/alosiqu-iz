@@ -38,9 +38,20 @@ export async function requireVerifiedClient(request: NextRequest) {
 export function assertSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
-  if (!origin || !host || new URL(origin).host !== host) {
-    throw new RequestAuthError("Invalid request origin.");
+  if (!host) throw new RequestAuthError("Invalid request origin.");
+  if (origin) {
+    if (new URL(origin).host !== host) throw new RequestAuthError("Invalid request origin.");
+    return;
   }
+
+  // Browsers commonly omit Origin for same-origin GET requests. Accept only
+  // explicit same-origin Fetch Metadata, or an exact same-host referrer.
+  if (request.method === "GET" || request.method === "HEAD") {
+    if (request.headers.get("sec-fetch-site") === "same-origin") return;
+    const referrer = request.headers.get("referer");
+    if (referrer && new URL(referrer).host === host) return;
+  }
+  throw new RequestAuthError("Invalid request origin.");
 }
 
 export async function enforceRateLimit(request: NextRequest, uid: string, action: string, limit: number, windowMs: number) {
