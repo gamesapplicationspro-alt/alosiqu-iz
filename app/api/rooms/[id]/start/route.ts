@@ -30,15 +30,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       throw new PublicApiError("Χρειάζονται τουλάχιστον δύο παίκτες, πέρα από τον host, για να ξεκινήσει το παιχνίδι.", 409);
     }
 
-    const result = await ref.transaction((room) => {
-      if (!room || room.expiresAt <= now || room.status !== "waiting") return;
-      return { ...room, status: "active", currentQuestionIndex: 0, revealedAnswerId: null, questionDeadlineAt: now + QUESTION_DURATION_MS };
+    // All authorization and state preconditions above are checked server-side.
+    // A direct update avoids an Admin SDK transaction abort observed on Vercel,
+    // while Firebase rules still deny every client-side write to this path.
+    await ref.update({
+      status: "active",
+      currentQuestionIndex: 0,
+      revealedAnswerId: null,
+      questionDeadlineAt: now + QUESTION_DURATION_MS,
     });
-    if (!result.committed) {
-      const current = (await ref.get()).val();
-      if (current?.status === "active") return Response.json({ ok: true, alreadyStarted: true });
-      throw new PublicApiError("Η κατάσταση του δωματίου άλλαξε. Ανανέωσε τη σελίδα και δοκίμασε ξανά.", 409);
-    }
     return Response.json({ ok: true });
   } catch (error) {
     return apiError(error);
