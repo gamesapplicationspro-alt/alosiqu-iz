@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const room = roomSnapshot.val() as V3Room | null;
     if (!room || isExpired(room)) throw new PublicApiError("Το δωμάτιο δεν βρέθηκε ή έχει λήξει.", 404);
     return Response.json({ room, players: (playersSnapshot.val() || {}) as Record<string, V3Player>, role: member.role }, {
-      headers: { "Cache-Control": "no-store, max-age=0" },
+      headers: { "Cache-Control": "private, no-store, no-cache, max-age=0, must-revalidate" },
     });
   } catch (error) {
     return apiError(error);

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { getDatabase, onValue, ref } from "firebase/database";
 import type { GamePhase } from "../../lib/game-phases";
 import { getSession, secureRequest } from "../../lib/session";
 
@@ -30,53 +29,57 @@ export default function RoomPage() {
   const advancedVersion = useRef<number | null>(null);
   const selectedAnswerRef = useRef<string | null>(null);
   const submittingAnswerRef = useRef(false);
+  const uidRef = useRef<string | null>(null);
+  const acknowledgedRoundRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    let stopRoom: (() => void) | undefined;
-    let stopPlayers: (() => void) | undefined;
-    let stopMember: (() => void) | undefined;
-    void (async () => {
-      try {
-        const session = await getSession();
-        setUid(session.uid);
-        const db = getDatabase(session.firebaseApp);
-        stopRoom = onValue(ref(db, `v3/rooms/${roomId}`), (snapshot) => {
-          const value = snapshot.val() as Room | null;
-          if (!value) setError("Το δωμάτιο δεν βρέθηκε ή έχει λήξει.");
-          setRoom(value);
-        }, () => setError("Δεν έχετε πρόσβαση σε αυτό το δωμάτιο."));
-        stopPlayers = onValue(ref(db, `v3/players/${roomId}`), (snapshot) => setPlayers(snapshot.val() || {}), () => setError("Δεν φορτώθηκαν οι παίκτες."));
-        stopMember = onValue(ref(db, `v3/members/${roomId}/${session.uid}`), (snapshot) => {
-          const value = snapshot.val();
-          setRole(value?.role || null);
-          if (!snapshot.exists()) setError("Δεν είστε μέλος αυτού του δωματίου.");
-        });
-      } catch (cause) { setError(cause instanceof Error ? cause.message : "Αδυναμία ασφαλούς σύνδεσης."); }
-    })();
-    return () => { stopRoom?.(); stopPlayers?.(); stopMember?.(); };
-  }, [roomId]);
-
-  // Firebase listeners give instant updates; this authenticated no-cache sync is
-  // the reliability backstop for browsers that suspend or lose a websocket.
   useEffect(() => {
     let cancelled = false;
-    async function refreshState() {
-      try {
-        const state = await secureRequest(`/api/rooms/${roomId}/state`, { method: "GET" });
+    void getSession()
+      .then((session) => {
         if (cancelled) return;
-        setRoom(state.room as Room);
-        setPlayers(state.players as Record<string, Player>);
+        uidRef.current = session.uid;
+        setUid(session.uid);
+      })
+      .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : "Αδυναμία ασφαλούς σύνδεσης."); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // One sequenced, authenticated read loop is more reliable than mixing a
+  // websocket listener with polling: stale responses can never overwrite state.
+  useEffect(() => {
+    let cancelled = false;
+    let timer: number | undefined;
+    let inFlight = false;
+    async function refreshState() {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const state = await secureRequest(`/api/rooms/${roomId}/state?at=${Date.now()}`, { method: "GET", cache: "no-store" });
+        if (cancelled) return;
+        const nextRoom = state.room as Room;
+        const nextPlayers = { ...(state.players as Record<string, Player>) };
+        const acknowledgedRound = acknowledgedRoundRef.current;
+        const currentUid = uidRef.current;
+        if (acknowledgedRound !== null && currentUid && nextRoom.round === acknowledgedRound) {
+          const incoming = nextPlayers[currentUid];
+          if (incoming?.answeredRound === acknowledgedRound) acknowledgedRoundRef.current = null;
+          else if (incoming) nextPlayers[currentUid] = { ...incoming, answeredRound: acknowledgedRound };
+        }
+        setRoom(nextRoom);
+        setPlayers(nextPlayers);
         setRole(state.role as "host" | "player");
       } catch (cause) {
         if (cancelled) return;
         const message = cause instanceof Error ? cause.message : "Αδυναμία συγχρονισμού παιχνιδιού.";
         if (message.includes("δεν βρέθηκε") || message.includes("έχει λήξει")) setRoom(null);
         setError(message);
+      } finally {
+        inFlight = false;
+        if (!cancelled) timer = window.setTimeout(refreshState, 1_000);
       }
     }
     void refreshState();
-    const interval = window.setInterval(() => void refreshState(), 1_000);
-    return () => { cancelled = true; window.clearInterval(interval); };
+    return () => { cancelled = true; if (timer) window.clearTimeout(timer); };
   }, [roomId]);
 
   useEffect(() => {
@@ -91,6 +94,7 @@ export default function RoomPage() {
     setLockedAnswer(null);
     selectedAnswerRef.current = null;
     submittingAnswerRef.current = false;
+    acknowledgedRoundRef.current = null;
     advancedVersion.current = null;
   }, [room?.round]);
 
@@ -138,6 +142,7 @@ export default function RoomPage() {
         return;
       }
       setLockedAnswer(answerId);
+      acknowledgedRoundRef.current = room.round;
       if (uid) {
         setPlayers((current) => current[uid]
           ? { ...current, [uid]: { ...current[uid], answeredRound: result.answeredRound } }
