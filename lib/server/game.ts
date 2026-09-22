@@ -1,16 +1,23 @@
 import { randomBytes } from "crypto";
 import { QUESTIONS } from "../../app/lib/questions";
+import { QUESTION_DURATION_MS, REVEAL_DURATION_MS, SCOREBOARD_DURATION_MS, type GamePhase } from "../../app/lib/game-phases";
 import type { Question } from "../../app/types";
 import { adminDb } from "@server/server/firebase-admin";
 import { PublicApiError } from "@server/server/request-auth";
 
 export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
-export const QUESTION_DURATION_MS = 15 * 1000;
-export type PublicQuestion = Omit<Question, "correctAnswerId">;
-export type PublicRoom = {
-  id: string; code: string; status: "waiting" | "active" | "finished";
-  currentQuestionIndex: number; questions: PublicQuestion[]; createdAt: number;
-  expiresAt: number; questionDeadlineAt: number | null; revealedAnswerId: string | null;
+export { QUESTION_DURATION_MS, REVEAL_DURATION_MS, SCOREBOARD_DURATION_MS };
+
+export type PublicAnswer = { id: string; text: string };
+export type PublicQuestion = { id: string; text: string; answers: PublicAnswer[] };
+export type V3Room = {
+  id: string; code: string; phase: GamePhase; questionIndex: number; round: number; version: number;
+  questions: PublicQuestion[]; createdAt: number; expiresAt: number; phaseEndsAt: number | null;
+  revealCorrectAnswerId: string | null;
+};
+export type V3Player = {
+  name: string; score: number; participates: boolean; joinedAt: number;
+  answeredRound: number; lastScoredRound: number;
 };
 
 export function normalizeName(value: unknown): string | null {
@@ -26,46 +33,80 @@ export function normalizeCode(value: unknown): string | null {
 }
 
 export function generateCode() {
-  return randomBytes(8).toString("hex").toUpperCase().slice(0, 8);
+  return randomBytes(5).toString("hex").toUpperCase().slice(0, 6);
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swap = randomBytes(4).readUInt32BE(0) % (index + 1);
+    [copy[index], copy[swap]] = [copy[swap]!, copy[index]!];
+  }
+  return copy;
 }
 
 function shuffledQuestions(): Question[] {
-  const items = QUESTIONS.map((question) => ({ ...question, answers: [...question.answers] }));
-  for (let index = items.length - 1; index > 0; index--) {
-    const swap = randomBytes(4).readUInt32BE(0) % (index + 1);
-    [items[index], items[swap]] = [items[swap]!, items[index]!];
-  }
-  return items;
+  return shuffle(QUESTIONS).map((question) => ({ ...question, answers: shuffle(question.answers) }));
 }
 
-export function publicQuestions(questions: Question[]): PublicQuestion[] {
-  return questions.map((question) => ({ id: question.id, text: question.text, answers: question.answers }));
+function publicQuestions(questions: Question[]): PublicQuestion[] {
+  return questions.map(({ id, text, answers }) => ({ id, text, answers }));
 }
 
-export async function requireHost(roomId: string, uid: string) {
-  const member = await adminDb().ref(`v2/members/${roomId}/${uid}`).get();
-  if (!member.exists() || member.val()?.role !== "host") throw new PublicApiError("Μόνο ο host μπορεί να εκτελέσει αυτή την ενέργεια.", 403);
+export async function requireV3Member(roomId: string, uid: string) {
+  const member = await adminDb().ref(`v3/members/${roomId}/${uid}`).get();
+  if (!member.exists()) throw new PublicApiError("Δεν είστε μέλος αυτού του δωματίου.", 403);
+  return member.val() as { role: "host" | "player" };
 }
 
-export async function createRoom(uid: string, name: string, requestedCode?: string) {
+export async function requireV3Host(roomId: string, uid: string) {
+  const member = await requireV3Member(roomId, uid);
+  if (member.role !== "host") throw new PublicApiError("Μόνο ο host μπορεί να εκτελέσει αυτή την ενέργεια.", 403);
+}
+
+export async function createV3Room(uid: string, name: string, requestedCode?: string) {
   const db = adminDb();
-  const roomId = db.ref("v2/rooms").push().key!;
+  const roomId = db.ref("v3/rooms").push().key!;
   const code = requestedCode ?? generateCode();
-  const codeRef = db.ref(`v2/codes/${code}`);
-  const codeClaim = await codeRef.transaction((existing) => existing ?? roomId);
-  if (!codeClaim.committed || codeClaim.snapshot.val() !== roomId) throw new Error("This room code is already in use. Generate another one.");
+  const claim = await db.ref(`v3/codes/${code}`).transaction((existing) => existing ?? roomId);
+  if (!claim.committed || claim.snapshot.val() !== roomId) throw new PublicApiError("Ο κωδικός χρησιμοποιείται ήδη. Δημιουργήστε νέο κωδικό.", 409);
+
   const now = Date.now();
   const questions = shuffledQuestions();
-  const room: PublicRoom = {
-    id: roomId, code, status: "waiting", currentQuestionIndex: 0,
+  const room: V3Room = {
+    id: roomId, code, phase: "lobby", questionIndex: 0, round: 0, version: 1,
     questions: publicQuestions(questions), createdAt: now, expiresAt: now + ROOM_TTL_MS,
-    questionDeadlineAt: null, revealedAnswerId: null,
+    phaseEndsAt: null, revealCorrectAnswerId: null,
   };
+  const host: V3Player = { name, score: 0, participates: true, joinedAt: now, answeredRound: -1, lastScoredRound: -1 };
   await db.ref().update({
-    [`v2/rooms/${roomId}`]: room,
-    [`v2/privateRooms/${roomId}`]: { questions },
-    [`v2/members/${roomId}/${uid}`]: { role: "host", joinedAt: now },
-    [`v2/players/${roomId}/${uid}`]: { name, score: 0, answeredQuestionIndex: -1 },
+    [`v3/rooms/${roomId}`]: room,
+    [`v3/privateRooms/${roomId}`]: { questions },
+    [`v3/members/${roomId}/${uid}`]: { role: "host", joinedAt: now },
+    [`v3/players/${roomId}/${uid}`]: host,
   });
   return room;
+}
+
+export function isExpired(room: V3Room, now = Date.now()) {
+  return room.expiresAt <= now;
+}
+
+export function phaseAfterDeadline(room: V3Room, correctAnswerId: string | null, now: number): V3Room | null {
+  if (!room.phaseEndsAt || room.phaseEndsAt > now) return null;
+  const version = room.version + 1;
+  if (room.phase === "question") {
+    return { ...room, phase: "reveal", version, phaseEndsAt: now + REVEAL_DURATION_MS, revealCorrectAnswerId: correctAnswerId };
+  }
+  if (room.phase === "reveal") {
+    return { ...room, phase: "scoreboard", version, phaseEndsAt: now + SCOREBOARD_DURATION_MS };
+  }
+  if (room.phase === "scoreboard") {
+    if (room.questionIndex + 1 >= room.questions.length) return { ...room, phase: "finished", version, phaseEndsAt: null };
+    return {
+      ...room, phase: "question", questionIndex: room.questionIndex + 1, round: room.round + 1,
+      version, phaseEndsAt: now + QUESTION_DURATION_MS, revealCorrectAnswerId: null,
+    };
+  }
+  return null;
 }

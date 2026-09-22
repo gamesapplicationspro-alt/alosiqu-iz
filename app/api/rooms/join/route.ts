@@ -15,21 +15,21 @@ export async function POST(request: NextRequest) {
     const code = normalizeCode(body.code);
     if (!name || !code) throw new PublicApiError("Μη έγκυρο όνομα ή κωδικός δωματίου.");
     const db = adminDb();
-    const codeSnapshot = await db.ref(`v2/codes/${code}`).get();
+    const codeSnapshot = await db.ref(`v3/codes/${code}`).get();
     const roomId = codeSnapshot.val() as string | null;
     if (!roomId) throw new PublicApiError("Το δωμάτιο δεν βρέθηκε.", 404);
-    const room = (await db.ref(`v2/rooms/${roomId}`).get()).val();
+    const room = (await db.ref(`v3/rooms/${roomId}`).get()).val();
     if (!room || room.expiresAt <= Date.now()) throw new PublicApiError("Το δωμάτιο έχει λήξει.", 410);
-    if (room.status !== "waiting") throw new PublicApiError("Το παιχνίδι έχει ήδη ξεκινήσει.", 409);
+    if (room.phase !== "lobby") throw new PublicApiError("Το παιχνίδι έχει ήδη ξεκινήσει.", 409);
     const [players, existingMember] = await Promise.all([
-      db.ref(`v2/players/${roomId}`).get(),
-      db.ref(`v2/members/${roomId}/${uid}`).get(),
+      db.ref(`v3/players/${roomId}`).get(),
+      db.ref(`v3/members/${roomId}/${uid}`).get(),
     ]);
     if (!players.hasChild(uid) && players.numChildren() >= 60) throw new PublicApiError("Το δωμάτιο είναι πλήρες.", 409);
     const now = Date.now();
     await db.ref().update({
-      [`v2/members/${roomId}/${uid}`]: { role: existingMember.val()?.role ?? "player", joinedAt: now },
-      [`v2/players/${roomId}/${uid}`]: { name, score: 0, answeredQuestionIndex: -1 },
+      [`v3/members/${roomId}/${uid}`]: { role: existingMember.val()?.role ?? "player", joinedAt: now },
+      [`v3/players/${roomId}/${uid}`]: { name, score: 0, participates: true, joinedAt: now, answeredRound: -1, lastScoredRound: -1 },
     });
     return Response.json({ roomId });
   } catch (error) {

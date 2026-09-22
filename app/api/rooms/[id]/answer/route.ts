@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminDb } from "@server/server/firebase-admin";
+import { isExpired, requireV3Member, type V3Player, type V3Room } from "@server/server/game";
+import { scoreForAnswer } from "@/lib/game-phases";
 import { apiError, assertSameOrigin, enforceRateLimit, PublicApiError, requireVerifiedClient } from "@server/server/request-auth";
 
 export const runtime = "nodejs";
@@ -8,41 +10,41 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     assertSameOrigin(request);
     const { uid } = await requireVerifiedClient(request);
-    await enforceRateLimit(request, uid, "answer", 30, 60 * 1000);
+    await enforceRateLimit(request, uid, "answer", 40, 60 * 1000);
     const { id } = await params;
+    await requireV3Member(id, uid);
     const body = await request.json();
     const answerId = typeof body.answerId === "string" && /^[a-z0-9_-]{1,32}$/i.test(body.answerId) ? body.answerId : null;
     if (!answerId) throw new PublicApiError("Μη έγκυρη απάντηση.");
 
     const db = adminDb();
-    const [roomSnapshot, memberSnapshot] = await Promise.all([
-      db.ref(`v2/rooms/${id}`).get(), db.ref(`v2/members/${id}/${uid}`).get(),
-    ]);
-    const room = roomSnapshot.val();
-    if (!memberSnapshot.exists()) throw new PublicApiError("Δεν είστε μέλος αυτού του δωματίου.", 403);
-    if (!room || room.expiresAt <= Date.now() || room.status !== "active" || !room.questionDeadlineAt || room.questionDeadlineAt < Date.now()) {
+    const room = (await db.ref(`v3/rooms/${id}`).get()).val() as V3Room | null;
+    const now = Date.now();
+    if (!room || isExpired(room, now) || room.phase !== "question" || !room.phaseEndsAt || room.phaseEndsAt <= now) {
       throw new PublicApiError("Η ερώτηση δεν είναι πλέον ενεργή.", 409);
     }
-    const index = room.currentQuestionIndex;
-    const privateQuestion = (await db.ref(`v2/privateRooms/${id}/questions/${index}`).get()).val();
-    if (!privateQuestion || !privateQuestion.answers?.some((answer: { id: string }) => answer.id === answerId)) {
-      throw new PublicApiError("Μη έγκυρη απάντηση.");
-    }
-    const answerRef = db.ref(`v2/answers/${id}/${uid}/${index}`);
-    const answerWrite = await answerRef.transaction((existing) => existing ?? { answerId, submittedAt: Date.now() });
-    if (!answerWrite.committed) throw new PublicApiError("Έχει ήδη καταχωριστεί απάντηση για αυτή την ερώτηση.", 409);
+    const [privateSnapshot, playerSnapshot] = await Promise.all([
+      db.ref(`v3/privateRooms/${id}/questions/${room.questionIndex}`).get(),
+      db.ref(`v3/players/${id}/${uid}`).get(),
+    ]);
+    const privateQuestion = privateSnapshot.val() as { answers: { id: string }[]; correctAnswerId: string } | null;
+    const player = playerSnapshot.val() as V3Player | null;
+    if (!player?.participates) throw new PublicApiError("Βρίσκεστε σε λειτουργία παρατήρησης.", 403);
+    if (!privateQuestion?.answers.some((answer) => answer.id === answerId)) throw new PublicApiError("Μη έγκυρη απάντηση.");
 
-    const correct = privateQuestion.correctAnswerId === answerId;
-    const playerRef = db.ref(`v2/players/${id}/${uid}`);
-    await playerRef.transaction((player) => {
-      if (!player) return;
-      return {
-        ...player,
-        score: player.score + (correct ? 1 : 0),
-        answeredQuestionIndex: index,
-      };
+    const answerRef = db.ref(`v3/answers/${id}/${uid}/${room.round}`);
+    const answerWrite = await answerRef.transaction((existing) => existing ?? { answerId, submittedAt: now });
+    const savedAnswer = answerWrite.snapshot.val() as { answerId: string; submittedAt: number };
+    const correct = savedAnswer.answerId === privateQuestion.correctAnswerId;
+    const points = correct ? scoreForAnswer(room.phaseEndsAt - savedAnswer.submittedAt) : 0;
+
+    const playerRef = db.ref(`v3/players/${id}/${uid}`);
+    const scoreWrite = await playerRef.transaction((current: V3Player | null) => {
+      if (!current || current.lastScoredRound >= room.round) return;
+      return { ...current, score: current.score + points, answeredRound: room.round, lastScoredRound: room.round };
     });
-    return Response.json({ accepted: true });
+    const replayed = !answerWrite.committed || !scoreWrite.committed;
+    return Response.json({ accepted: true, replayed });
   } catch (error) {
     return apiError(error);
   }

@@ -46,7 +46,7 @@ export function assertSameOrigin(request: NextRequest) {
 export async function enforceRateLimit(request: NextRequest, uid: string, action: string, limit: number, windowMs: number) {
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const key = createHash("sha256").update(`${uid}:${forwardedFor}`).digest("hex");
-  const ref = adminDb().ref(`v2/rateLimits/${action}/${key}`);
+  const ref = adminDb().ref(`v3/rateLimits/${action}/${key}`);
   const now = Date.now();
   const result = await ref.transaction((current: { start: number; count: number } | null) => {
     if (!current || now - current.start >= windowMs) return { start: now, count: 1 };

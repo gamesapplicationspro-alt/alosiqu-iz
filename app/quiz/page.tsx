@@ -1,314 +1,71 @@
 "use client";
 
-import React, { useCallback, useEffect, useReducer } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { QUESTIONS } from "../lib/questions";
-import QuestionCard from "./components/QuestionCard";
-import ProgressBar from "./components/ProgressBar";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { Question } from "../types";
+import { QUESTION_DURATION_MS, REVEAL_DURATION_MS, SCOREBOARD_DURATION_MS, type GamePhase } from "../lib/game-phases";
 
-interface State {
-  questions: Question[];
-  currentIndex: number;
-  selectedAnswer: string | null;
-  score: number;
-  timeLeft: number;
-  showResult: boolean;
-  isCompleted: boolean;
-  playerName: string;
-  loading: boolean;
+function shuffledQuestions() {
+  return [...QUESTIONS].sort(() => Math.random() - 0.5).map((question) => ({ ...question, answers: [...question.answers].sort(() => Math.random() - 0.5) }));
 }
 
-type Action =
-  | { type: "SET_QUESTIONS"; payload: Question[] }
-  | { type: "SET_CURRENT_INDEX"; payload: number }
-  | { type: "SET_SELECTED_ANSWER"; payload: string | null }
-  | { type: "SET_SCORE"; payload: number }
-  | { type: "DECREMENT_TIMER" }
-  | { type: "SET_TIMER"; payload: number }
-  | { type: "SHOW_RESULT" }
-  | { type: "HIDE_RESULT" }
-  | { type: "SET_COMPLETED"; payload: boolean }
-  | { type: "SET_PLAYER_NAME"; payload: string }
-  | { type: "SET_LOADING"; payload: boolean };
-
-const initialState: State = {
-  questions: [],
-  currentIndex: 0,
-  selectedAnswer: null,
-  score: 0,
-  timeLeft: 15,
-  showResult: false,
-  isCompleted: false,
-  playerName: "",
-  loading: false,
-};
-
-function quizReducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "SET_QUESTIONS":
-      return { ...state, questions: action.payload };
-    case "SET_CURRENT_INDEX":
-      return { 
-        ...state, 
-        currentIndex: action.payload, 
-        selectedAnswer: null, 
-        showResult: false,
-        timeLeft: 15 
-      };
-    case "SET_SELECTED_ANSWER":
-      return { ...state, selectedAnswer: action.payload };
-    case "SET_SCORE":
-      return { ...state, score: action.payload };
-    case "DECREMENT_TIMER":
-      return { ...state, timeLeft: Math.max(0, state.timeLeft - 1) };
-    case "SET_TIMER":
-      return { ...state, timeLeft: action.payload };
-    case "SHOW_RESULT":
-      return { ...state, showResult: true };
-    case "HIDE_RESULT":
-      return { ...state, showResult: false };
-    case "SET_COMPLETED":
-      return { ...state, isCompleted: action.payload };
-    case "SET_PLAYER_NAME":
-      return { ...state, playerName: action.payload };
-    case "SET_LOADING":
-      return { ...state, loading: action.payload };
-    default:
-      return state;
-  }
-}
-
-export default function QuizPage() {
-  const [state, dispatch] = useReducer(quizReducer, initialState);
+export default function SoloQuiz() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [questions, setQuestions] = useState(() => shuffledQuestions());
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState<GamePhase>("question");
+  const [deadline, setDeadline] = useState(0);
+  const [seconds, setSeconds] = useState(20);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [score, setScore] = useState(0);
 
   useEffect(() => {
-    // Get stored player name
-    const storedName = localStorage.getItem('playerName');
-    if (storedName) {
-      dispatch({ type: "SET_PLAYER_NAME", payload: storedName });
-    } else {
-      dispatch({ type: "SET_PLAYER_NAME", payload: "Παίκτης" });
-    }
-    
-    // Shuffle and set questions
-    const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
-    dispatch({ type: "SET_QUESTIONS", payload: shuffledQuestions });
-    
-    // Add animations
-    const timer = setTimeout(() => {
-      document.querySelectorAll('.animate-float').forEach((el, index) => {
-        (el as HTMLElement).style.animationDelay = `${index * 0.3}s`;
-      });
-    }, 100);
-    return () => clearTimeout(timer);
+    const timer = window.setTimeout(() => {
+      setName(localStorage.getItem("playerName") || "Παίκτης");
+      setDeadline(Date.now() + QUESTION_DURATION_MS);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
-
   useEffect(() => {
-    if (state.questions.length === 0 || state.isCompleted) return;
+    const tick = () => setSeconds(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    tick(); const interval = window.setInterval(tick, 200); return () => window.clearInterval(interval);
+  }, [deadline]);
+  const question = questions[index];
+  const correct = question?.correctAnswerId;
+  const finished = phase === "finished";
 
-    const timer = setInterval(() => {
-      dispatch({ type: "DECREMENT_TIMER" });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [state.currentIndex, state.questions.length, state.isCompleted]);
-
-  const currentQuestion = state.questions[state.currentIndex];
-
-  const handleAnswerSelect = (answerId: string) => {
-    if (state.selectedAnswer || !currentQuestion || state.showResult) return;
-    dispatch({ type: "SET_SELECTED_ANSWER", payload: answerId });
-    if (answerId === currentQuestion.correctAnswerId) {
-      dispatch({ type: "SET_SCORE", payload: state.score + 1 });
-    }
-  };
-
-  const goToNextQuestion = useCallback(() => {
-    if (state.currentIndex < state.questions.length - 1) {
-      dispatch({ type: "SET_CURRENT_INDEX", payload: state.currentIndex + 1 });
-    } else {
-      dispatch({ type: "SET_COMPLETED", payload: true });
-    }
-  }, [state.currentIndex, state.questions.length]);
-
+  function move(nextPhase: GamePhase) {
+    setPhase(nextPhase);
+    const duration = nextPhase === "reveal" ? REVEAL_DURATION_MS : nextPhase === "scoreboard" ? SCOREBOARD_DURATION_MS : QUESTION_DURATION_MS;
+    setDeadline(Date.now() + duration);
+  }
   useEffect(() => {
-    if (state.timeLeft === 0 && state.questions.length > 0) {
-      goToNextQuestion();
-    }
-  }, [goToNextQuestion, state.timeLeft, state.questions.length]);
+    if (!deadline || seconds > 0 || finished) return;
+    const timer = window.setTimeout(() => {
+      if (phase === "question") move("reveal");
+      else if (phase === "reveal") move("scoreboard");
+      else if (phase === "scoreboard") {
+        if (index + 1 >= questions.length) setPhase("finished");
+        else { setIndex((value) => value + 1); setSelected(null); move("question"); }
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [seconds, phase, deadline, finished, index, questions.length]);
 
-  const restartQuiz = () => {
-    const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
-    dispatch({ type: "SET_QUESTIONS", payload: shuffledQuestions });
-    dispatch({ type: "SET_CURRENT_INDEX", payload: 0 });
-    dispatch({ type: "SET_SCORE", payload: 0 });
-    dispatch({ type: "SET_COMPLETED", payload: false });
-    dispatch({ type: "SET_TIMER", payload: 15 });
-  };
-
-  if (state.loading) {
-    return (
-      <div className="min-h-screen pattern-greek-key flex items-center justify-center">
-        <div className="text-foreground text-xl animate-pulse">Φόρτωση του Αγώνα...</div>
-      </div>
-    );
+  const resultText = useMemo(() => `${score.toLocaleString("el-GR")} pts`, [score]);
+  function select(answerId: string) {
+    if (phase !== "question" || selected) return;
+    setSelected(answerId);
+    if (answerId === correct) setScore((value) => value + 1_000 + Math.round((Math.max(0, deadline - Date.now()) / QUESTION_DURATION_MS) * 500));
   }
+  function restart() { setQuestions(shuffledQuestions()); setIndex(0); setSelected(null); setScore(0); move("question"); }
+  const colors = ["bg-red-600", "bg-blue-600", "bg-yellow-500", "bg-green-600"];
 
-  if (state.isCompleted) {
-    const percentage = Math.round((state.score / state.questions.length) * 100);
-    return (
-      <div className="min-h-screen pattern-greek-key">
-        <header className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent"></div>
-          <div className="relative z-10 text-center py-8 px-4">
-            <h1 className="greek-title text-4xl md:text-6xl mb-4 animate-float">
-              ΟΛΟΚΛΗΡΩΣΗ ΑΓΩΝΑ
-            </h1>
-            <p className="greek-subtitle text-lg md:text-xl max-w-2xl mx-auto">
-              {state.playerName}, η ιστορική σας πρόκληση ολοκληρώθηκε!
-            </p>
-          </div>
-        </header>
-
-        <main className="relative z-10 container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
-            <div className="marble-bg p-8 md:p-12 animate-scroll-reveal">
-              <div className="text-center mb-8">
-                <div className="text-6xl mb-4 animate-pulse-gold">
-                  {percentage >= 80 ? '🏆' : percentage >= 60 ? '🥈' : percentage >= 40 ? '🥉' : '📜'}
-                </div>
-                <h2 className="greek-title text-2xl md:text-3xl mb-4">
-                  Αποτελέσματα
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="parchment-bg p-6 rounded-lg">
-                    <div className="text-3xl font-bold text-gold mb-2">{state.score}</div>
-                    <div className="text-sm text-foreground/70">Σωστές Απαντήσεις</div>
-                  </div>
-                  <div className="parchment-bg p-6 rounded-lg">
-                    <div className="text-3xl font-bold text-bronze mb-2">{state.questions.length - state.score}</div>
-                    <div className="text-sm text-foreground/70">Λάθος Απαντήσεις</div>
-                  </div>
-                  <div className="parchment-bg p-6 rounded-lg">
-                    <div className="text-3xl font-bold text-purple-royal mb-2">{percentage}%</div>
-                    <div className="text-sm text-foreground/70">Ποσοστό Επιτυχίας</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center space-y-4">
-                <button
-                  onClick={restartQuiz}
-                  className="gold-button px-8 py-4 text-xl font-bold"
-                >
-                  🔄 Νέα Πρόκληση
-                </button>
-                <div>
-                  <button
-                    onClick={() => window.location.href = '/'}
-                    className="text-foreground/60 hover:text-gold transition-colors underline text-sm"
-                  >
-                    ← Επιστροφή στην Αρχική
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-
-        <footer className="relative z-10 mt-16 border-t-4 border-double border-parchment bg-parchment/50">
-          <div className="container mx-auto px-4 py-8 text-center">
-            <div className="greek-subtitle text-lg mb-4">
-              ΑΛΟΣΙΚΟΥ ΙΣΤΟΡΙΑ © 2024
-            </div>
-            <p className="text-foreground/70 text-sm max-w-2xl mx-auto">
-              Κάθε ολοκλήρωση είναι ένα νέο κεφάλαιο στην ιστορία της γνώσης.
-            </p>
-          </div>
-        </footer>
-
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-10 left-10 text-6xl opacity-10 animate-float" style={{ animationDelay: '0s' }}>🏆</div>
-          <div className="absolute top-20 right-20 text-4xl opacity-10 animate-float" style={{ animationDelay: '2s' }}>📜</div>
-          <div className="absolute bottom-20 left-20 text-5xl opacity-10 animate-float" style={{ animationDelay: '4s' }}>⚡</div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <div className="min-h-screen pattern-greek-key">
-        <header className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent"></div>
-          <div className="relative z-10 text-center py-8 px-4">
-            <h1 className="greek-title text-4xl md:text-6xl mb-4 animate-float">
-              ΙΣΤΟΡΙΚΗ ΠΡΟΚΛΗΣΗ
-            </h1>
-            <p className="greek-subtitle text-lg md:text-xl max-w-2xl mx-auto">
-              {state.playerName}, δοκιμάστε τις γνώσεις σας στην αρχαία ελληνική ιστορία
-            </p>
-          </div>
-        </header>
-
-        <main className="relative z-10 container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
-            {/* Progress Bar */}
-            <div className="mb-8 animate-slide-up">
-              <ProgressBar 
-                current={state.currentIndex + 1} 
-                total={state.questions.length}
-              />
-            </div>
-
-            {/* Question Card */}
-            {currentQuestion && (
-              <div className="animate-scroll-reveal">
-                <QuestionCard
-                  question={currentQuestion}
-                  selectedAnswerId={state.selectedAnswer}
-                  onSelect={handleAnswerSelect}
-                />
-              </div>
-            )}
-
-            {/* Navigation */}
-            <div className="text-center mt-8 space-y-4">
-              <button
-                onClick={goToNextQuestion}
-                disabled={!state.selectedAnswer}
-                className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-amber-700 hover:to-yellow-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:px-8 sm:text-lg"
-              >
-                {state.currentIndex + 1 === state.questions.length ? "Ολοκλήρωση" : "Επόμενο"}
-              </button>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="text-foreground/60 hover:text-gold transition-colors underline text-sm"
-              >
-                ← Επιστροφή στην Αρχική
-              </button>
-            </div>
-          </div>
-        </main>
-
-        <footer className="relative z-10 mt-16 border-t-4 border-double border-parchment bg-parchment/50">
-          <div className="container mx-auto px-4 py-8 text-center">
-            <div className="greek-subtitle text-lg mb-4">
-              ΑΛΟΣΙΚΟΥ ΙΣΤΟΡΙΑ © 2024
-            </div>
-            <p className="text-foreground/70 text-sm max-w-2xl mx-auto">
-              Κάθε ερώτηση είναι ένα ταξίδι στον χρόνο.
-            </p>
-          </div>
-        </footer>
-
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-10 left-10 text-6xl opacity-10 animate-float" style={{ animationDelay: '0s' }}>📜</div>
-          <div className="absolute top-20 right-20 text-4xl opacity-10 animate-float" style={{ animationDelay: '2s' }}>🏛️</div>
-          <div className="absolute bottom-20 left-20 text-5xl opacity-10 animate-float" style={{ animationDelay: '4s' }}>⚡</div>
-        </div>
-      </div>
-    </ErrorBoundary>
-  );
+  if (finished) return <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-100 p-4"><section className="w-full max-w-xl rounded-3xl bg-white p-8 text-center shadow-2xl"><div className="text-7xl">🏆</div><h1 className="mt-4 text-4xl font-black text-amber-900">Μπράβο, {name}!</h1><p className="mt-3 text-xl">Τελικό σκορ: <b>{resultText}</b></p><button onClick={restart} className="mt-7 rounded-xl bg-amber-700 px-6 py-4 font-black text-white">Νέα πρόκληση</button><button onClick={() => router.push("/")} className="ml-3 mt-7 font-bold text-amber-800 underline">Αρχική</button></section></main>;
+  return <main className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-100 p-4 sm:p-8"><section className="mx-auto max-w-4xl"><header className="flex items-center justify-between gap-4 rounded-2xl bg-amber-900 p-4 text-white shadow-lg"><div><p className="text-sm opacity-80">Μοναχική πρόκληση</p><h1 className="text-xl font-black">{name}</h1></div><div className="text-right"><b className="text-3xl tabular-nums">{seconds}</b><span> δευτ.</span></div></header><div className="mt-5 flex justify-between font-bold text-amber-900"><span>Ερώτηση {index + 1}/{questions.length}</span><span>{resultText}</span></div>
+    {phase === "question" && question && <article className="mt-5 rounded-3xl bg-white p-6 shadow-2xl sm:p-10"><h2 className="text-center text-2xl font-black sm:text-3xl">{question.text}</h2><div className="mt-8 grid gap-3 md:grid-cols-2">{question.answers.map((answer, answerIndex) => <button key={answer.id} disabled={Boolean(selected)} onClick={() => select(answer.id)} className={`${colors[answerIndex]} min-h-28 rounded-2xl p-5 text-left text-lg font-black text-white shadow-lg transition hover:brightness-110 disabled:opacity-60`}><span className="mr-3 text-2xl">{["▲", "◆", "●", "■"][answerIndex]}</span>{answer.text}</button>)}</div>{selected && <p className="mt-6 text-center font-bold text-green-700">✓ Καταχωρίστηκε — η απάντηση θα αποκαλυφθεί σύντομα.</p>}</article>}
+    {phase === "reveal" && question && <article className="mt-5 rounded-3xl bg-white p-6 text-center shadow-2xl"><p className="font-bold text-purple-700">Η σωστή απάντηση</p><h2 className="mt-3 text-2xl font-black">{question.text}</h2><div className="mt-6 space-y-3">{question.answers.map((answer) => <div key={answer.id} className={`rounded-2xl p-4 text-left font-bold ${answer.id === correct ? "bg-green-600 text-white" : "bg-stone-100 text-stone-500"}`}>{answer.id === correct ? "✓ " : ""}{answer.text}</div>)}</div></article>}
+    {phase === "scoreboard" && <article className="mt-5 rounded-3xl bg-white p-8 text-center shadow-2xl"><div className="text-6xl">📜</div><h2 className="mt-3 text-3xl font-black">{resultText}</h2><p className="mt-2">Ετοιμαστείτε για την επόμενη ερώτηση…</p></article>}
+  </section></main>;
 }

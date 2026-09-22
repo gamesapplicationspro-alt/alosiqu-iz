@@ -1,70 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { secureRequest } from "../lib/session";
 
 export default function JoinRoom() {
-  const [roomCode, setRoomCode] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  const router = useRouter();
+  const [name, setName] = useState(() => typeof window === "undefined" ? "" : localStorage.getItem("playerName") || "");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const joinRoom = async () => {
-    if (!roomCode || !playerName) return;
-    setLoading(true);
-    setError(null);
-    
+  const [error, setError] = useState("");
+  async function join() {
+    const cleanName = name.trim().replace(/\s+/g, " ");
+    if (cleanName.length < 2 || code.length < 4) return setError("Συμπληρώστε nickname και έγκυρο κωδικό δωματίου.");
+    setLoading(true); setError("");
     try {
-      localStorage.setItem("playerName", playerName.trim());
-      const result = await secureRequest("/api/rooms/join", {
-        method: "POST",
-        body: JSON.stringify({ name: playerName, code: roomCode }),
-      });
-      window.location.href = `/room/${result.roomId}`;
-    } catch (error) {
-      console.error("Error joining room:", error);
-      setError(error instanceof Error ? error.message : "Unknown error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 p-4 sm:p-6 lg:p-8 animate-fade-in">
-      <div className="w-full max-w-sm sm:max-w-md parchment-bg rounded-lg p-6 sm:p-8 shadow-2xl animate-slide-up">
-        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-amber-900 dark:text-amber-100">Είσοδος σε Δωμάτιο</h1>
-        <input
-          type="text"
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="Όνομα Παίκτη"
-          className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-        />
-        <input
-          type="text"
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-          placeholder="Κωδικός Δωματίου"
-          className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 sm:mb-6 text-center text-base sm:text-lg font-mono bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 uppercase"
-          maxLength={6}
-          autoFocus
-        />
-        {error && (
-          <div className="w-full p-3 sm:p-4 mb-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-            <p className="font-semibold">Σφάλμα:</p>
-            <p>{error}</p>
-            <p className="text-xs sm:text-sm mt-2">Ελέγξτε τη ρύθμιση Firebase και Vercel.</p>
-          </div>
-        )}
-        
-        <button
-          onClick={joinRoom}
-          disabled={!roomCode || !playerName || loading}
-          className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-800 px-4 py-3 text-white font-semibold hover:from-purple-700 hover:to-purple-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none text-sm sm:text-base"
-        >
-          {loading ? "Είσοδος..." : "Είσοδος"}
-        </button>
-      </div>
-    </div>
-  );
+      localStorage.setItem("playerName", cleanName);
+      const result = await secureRequest("/api/rooms/join", { method: "POST", body: JSON.stringify({ name: cleanName, code }) });
+      router.replace(`/room/${result.roomId}`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Δεν ήταν δυνατή η είσοδος."); }
+    finally { setLoading(false); }
+  }
+  return <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-purple-100 to-purple-200 p-4 dark:from-purple-950 dark:via-purple-900">
+    <section className="w-full max-w-md rounded-2xl border-2 border-purple-700 bg-white p-6 shadow-2xl dark:bg-stone-950"><h1 className="text-center text-2xl font-black text-purple-900 dark:text-purple-100">Είσοδος σε δωμάτιο</h1><p className="mt-2 text-center text-sm text-purple-800 dark:text-purple-200">Μπείτε στο παιχνίδι του host με τον εξαψήφιο κωδικό.</p>
+      <label className="mt-6 block text-sm font-bold">Nickname</label><input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} autoComplete="nickname" className="mt-1 w-full rounded-xl border-2 border-purple-500 bg-purple-50 p-3 text-purple-950" placeholder="Το nickname σας" />
+      <label className="mt-4 block text-sm font-bold">Κωδικός δωματίου</label><input value={code} onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} maxLength={6} autoFocus className="mt-1 w-full rounded-xl border-2 border-purple-500 bg-purple-50 p-3 text-center font-mono text-xl tracking-[0.3em] text-purple-950" placeholder="ABC123" />
+      {error && <p className="mt-4 rounded-lg bg-red-100 p-3 text-sm font-semibold text-red-800">{error}</p>}
+      <button disabled={loading} onClick={() => void join()} className="mt-6 w-full rounded-xl bg-gradient-to-r from-purple-600 to-purple-800 p-4 text-lg font-black text-white disabled:opacity-60">{loading ? "Ασφαλής είσοδος…" : "Είσοδος στο παιχνίδι"}</button>
+      <button onClick={() => router.push("/")} className="mt-4 w-full text-sm font-semibold text-purple-800 underline dark:text-purple-200">← Αρχική</button>
+    </section>
+  </main>;
 }

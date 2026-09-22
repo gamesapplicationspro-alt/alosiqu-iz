@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { adminDb } from "@server/server/firebase-admin";
-import { QUESTION_DURATION_MS, requireHost } from "@server/server/game";
+import { QUESTION_DURATION_MS, isExpired, requireV3Host, type V3Player, type V3Room } from "@server/server/game";
 import { apiError, assertSameOrigin, enforceRateLimit, PublicApiError, requireVerifiedClient } from "@server/server/request-auth";
 
 export const runtime = "nodejs";
@@ -11,33 +11,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { uid } = await requireVerifiedClient(request);
     await enforceRateLimit(request, uid, "start", 6, 60 * 1000);
     const { id } = await params;
-    await requireHost(id, uid);
-    const ref = adminDb().ref(`v2/rooms/${id}`);
+    await requireV3Host(id, uid);
+    const db = adminDb();
+    const [roomSnapshot, playersSnapshot] = await Promise.all([db.ref(`v3/rooms/${id}`).get(), db.ref(`v3/players/${id}`).get()]);
+    const room = roomSnapshot.val() as V3Room | null;
+    const players = (playersSnapshot.val() || {}) as Record<string, V3Player>;
     const now = Date.now();
-    const [roomSnapshot, playersSnapshot] = await Promise.all([
-      ref.get(),
-      adminDb().ref(`v2/players/${id}`).get(),
-    ]);
-    const existingRoom = roomSnapshot.val();
-    if (!existingRoom) throw new PublicApiError("Το δωμάτιο δεν βρέθηκε.", 404);
-    if (existingRoom.expiresAt <= now) throw new PublicApiError("Το δωμάτιο έχει λήξει.", 410);
-
-    // A repeated click or a slow realtime update must not be reported as a failed start.
-    if (existingRoom.status === "active") return Response.json({ ok: true, alreadyStarted: true });
-    if (existingRoom.status === "finished") throw new PublicApiError("Το παιχνίδι έχει ήδη ολοκληρωθεί.", 409);
-    if (existingRoom.status !== "waiting") throw new PublicApiError("Το δωμάτιο δεν είναι έτοιμο για έναρξη.", 409);
-    if (playersSnapshot.numChildren() < 3) {
-      throw new PublicApiError("Χρειάζονται τουλάχιστον δύο παίκτες, πέρα από τον host, για να ξεκινήσει το παιχνίδι.", 409);
+    if (!room) throw new PublicApiError("Το δωμάτιο δεν βρέθηκε.", 404);
+    if (isExpired(room, now)) throw new PublicApiError("Το δωμάτιο έχει λήξει.", 410);
+    if (room.phase !== "lobby") return Response.json({ ok: true, alreadyStarted: true });
+    if (!Object.values(players).some((player) => player.participates)) {
+      throw new PublicApiError("Χρειάζεται τουλάχιστον ένας παίκτης που συμμετέχει.", 409);
     }
-
-    // All authorization and state preconditions above are checked server-side.
-    // A direct update avoids an Admin SDK transaction abort observed on Vercel,
-    // while Firebase rules still deny every client-side write to this path.
-    await ref.update({
-      status: "active",
-      currentQuestionIndex: 0,
-      revealedAnswerId: null,
-      questionDeadlineAt: now + QUESTION_DURATION_MS,
+    await db.ref(`v3/rooms/${id}`).update({
+      phase: "question", questionIndex: 0, round: 0, version: room.version + 1,
+      phaseEndsAt: now + QUESTION_DURATION_MS, revealCorrectAnswerId: null,
     });
     return Response.json({ ok: true });
   } catch (error) {

@@ -7,7 +7,7 @@
 1. Άνοιξε **Firebase Console** και επίλεξε το project που αντιστοιχεί στο NEXT_PUBLIC_FIREBASE_PROJECT_ID του Vercel.
 2. Πήγαινε **Build → Realtime Database → Data**.
 3. Από το μενού των τριών τελειών διάλεξε **Export JSON** και αποθήκευσε το αρχείο σε ασφαλές, ιδιωτικό φάκελο. Μην το ανεβάσεις στο repository.
-4. Επιβεβαίωσε ότι βλέπεις τα παλιά rooms, players ή quizHistory. Δεν τα διαγράφεις τώρα. Η νέα εφαρμογή γράφει αποκλειστικά κάτω από v2.
+4. Επιβεβαίωσε ότι βλέπεις τα παλιά rooms, players ή quizHistory. Δεν τα διαγράφεις τώρα. Η νέα εφαρμογή γράφει αποκλειστικά κάτω από v3 και τα παλιά δεδομένα καθαρίζονται από το καθημερινό cron.
 
 ## 2. Firebase Console
 
@@ -15,7 +15,7 @@
 
 1. Στο **Build → Realtime Database → Rules**, άνοιξε το τοπικό database.rules.json, αντέγραψε μόνο το περιεχόμενό του, επικόλλησέ το και πάτησε **Publish**.
 2. Αυτοί οι κανόνες κόβουν κάθε direct write από browser. Είναι αναμενόμενο να σταματήσει προσωρινά η παλιά έκδοση της σελίδας μέχρι να γίνει deploy η νέα.
-3. Μετά το deploy, στο **Data** θα εμφανίζεται η νέα δομή v2. Μην αλλάζεις κόμβους χειροκίνητα εκεί.
+3. Μετά το deploy, στο **Data** θα εμφανίζεται η νέα δομή v3. Μην αλλάζεις κόμβους χειροκίνητα εκεί.
 
 ### Anonymous Authentication
 
@@ -66,7 +66,7 @@
 3. Δημοσίευσε τα database.rules.json. Η παλιά έκδοση θα είναι μη λειτουργική μέχρι το νέο deploy — αυτό είναι το ασφαλές maintenance window.
 4. Κάνε push το νέο commit στο main ή Vercel **Deploy** από το νέο commit.
 5. Στο **Deployments → τελευταίο deployment → Functions logs**, βεβαιώσου ότι δεν υπάρχει Missing required server environment variable.
-6. Δοκίμασε host σε ένα κανονικό browser και player σε Incognito/δεύτερη συσκευή: δημιουργία, είσοδο, observer mode, 15-second timer, μία απάντηση, score, τελικό history.
+6. Δοκίμασε host σε ένα κανονικό browser και player σε Incognito/δεύτερη συσκευή: δημιουργία, είσοδο, λειτουργία παρατήρησης, 20-second timer, μία απάντηση, αποκάλυψη, κατάταξη και τελικό history.
 7. Ενεργοποίησε App Check enforcement μόνο μετά από αυτό το test.
 
 ## 5. Καθημερινός καθαρισμός και έλεγχος

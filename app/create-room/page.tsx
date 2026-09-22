@@ -1,89 +1,35 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { secureRequest } from "../lib/session";
 
 export default function CreateRoom() {
-  const [roomCode, setRoomCode] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  const router = useRouter();
+  const [name, setName] = useState(() => typeof window === "undefined" ? "" : localStorage.getItem("playerName") || "");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPlayerName(localStorage.getItem("playerName")?.trim() || "");
-  }, []);
-
-  const generateCode = () => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setRoomCode(code);
-  };
-
-  const createRoom = async () => {
-    if (!roomCode || !playerName.trim()) return;
-    setLoading(true);
-    setError(null);
-    
+  const [error, setError] = useState("");
+  async function createRoom() {
+    const cleanName = name.trim().replace(/\s+/g, " ");
+    if (cleanName.length < 2) return setError("Το nickname χρειάζεται τουλάχιστον 2 χαρακτήρες.");
+    setLoading(true); setError("");
     try {
-      const hostName = playerName.trim();
-      localStorage.setItem("playerName", hostName);
-      const result = await secureRequest("/api/rooms", {
-        method: "POST",
-        body: JSON.stringify({ name: hostName, code: roomCode }),
-      });
-      window.location.href = `/room/${result.roomId}`;
-    } catch (error) {
-      console.error("Error creating room:", error);
-      setError(error instanceof Error ? error.message : "Unknown error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+      localStorage.setItem("playerName", cleanName);
+      const result = await secureRequest("/api/rooms", { method: "POST", body: JSON.stringify({ name: cleanName, code: code || undefined }) });
+      router.replace(`/room/${result.roomId}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Δεν δημιουργήθηκε το δωμάτιο.");
+    } finally { setLoading(false); }
+  }
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-50 dark:from-amber-900 dark:via-yellow-900 dark:to-orange-900 p-4 sm:p-6 lg:p-8 animate-fade-in">
-      <div className="w-full max-w-sm sm:max-w-md parchment-bg rounded-lg p-6 sm:p-8 shadow-2xl animate-slide-up">
-        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-amber-900 dark:text-amber-100">Δημιουργία Δωματίου</h1>
-        <div className="mb-4 sm:mb-6">
-          <button
-            onClick={generateCode}
-            className="w-full rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 px-4 py-3 text-white font-semibold hover:from-amber-700 hover:to-yellow-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl text-sm sm:text-base"
-          >
-            Δημιουργία Κωδικού
-          </button>
-        </div>
-        <input
-          type="text"
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="Το nickname σας"
-          className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-          maxLength={20}
-          autoComplete="nickname"
-        />
-        <input
-          type="text"
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-          placeholder="Κωδικός Δωματίου"
-          className="w-full border-2 border-amber-600 p-3 rounded-md mb-4 sm:mb-6 text-center text-base sm:text-lg font-mono bg-yellow-50 dark:bg-yellow-900 text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-          maxLength={6}
-        />
-        {error && (
-          <div className="w-full p-3 sm:p-4 mb-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-            <p className="font-semibold">Σφάλμα:</p>
-            <p>{error}</p>
-            <p className="text-xs sm:text-sm mt-2">Ελέγξτε τη ρύθμιση Firebase και Vercel.</p>
-          </div>
-        )}
-        
-        <button
-          onClick={createRoom}
-          disabled={!roomCode || !playerName.trim() || loading}
-          className="w-full rounded-lg bg-gradient-to-r from-green-600 to-green-800 px-4 py-3 text-white font-semibold hover:from-green-700 hover:to-green-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none text-sm sm:text-base"
-        >
-          {loading ? "Δημιουργία..." : "Δημιουργία Δωματίου"}
-        </button>
-      </div>
-    </div>
-  );
+  return <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 via-yellow-100 to-orange-100 p-4 dark:from-amber-950 dark:via-yellow-950">
+    <section className="w-full max-w-md rounded-2xl border-2 border-amber-700 bg-amber-50 p-6 shadow-2xl dark:bg-stone-950"><h1 className="text-center text-2xl font-black text-amber-900 dark:text-amber-100">Δημιουργία δωματίου</h1><p className="mt-2 text-center text-sm text-amber-800 dark:text-amber-200">Θα γίνετε host και μπορείτε να παίξετε ή να παρατηρείτε.</p>
+      <label className="mt-6 block text-sm font-bold">Nickname</label><input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} autoComplete="nickname" className="mt-1 w-full rounded-xl border-2 border-amber-500 bg-white p-3 text-amber-950" placeholder="Το nickname σας" />
+      <label className="mt-4 block text-sm font-bold">Κωδικός δωματίου <span className="font-normal">(προαιρετικός)</span></label><div className="mt-1 flex gap-2"><input value={code} onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} maxLength={6} className="min-w-0 flex-1 rounded-xl border-2 border-amber-500 bg-white p-3 text-center font-mono text-lg tracking-widest text-amber-950" placeholder="ABC123" /><button onClick={() => setCode(Math.random().toString(36).slice(2, 8).toUpperCase())} className="rounded-xl bg-amber-700 px-3 font-bold text-white">Νέος</button></div>
+      {error && <p className="mt-4 rounded-lg bg-red-100 p-3 text-sm font-semibold text-red-800">{error}</p>}
+      <button disabled={loading} onClick={() => void createRoom()} className="mt-6 w-full rounded-xl bg-gradient-to-r from-green-600 to-green-800 p-4 text-lg font-black text-white disabled:opacity-60">{loading ? "Ασφαλής δημιουργία…" : "Δημιουργία δωματίου"}</button>
+      <button onClick={() => router.push("/")} className="mt-4 w-full text-sm font-semibold text-amber-800 underline dark:text-amber-200">← Αρχική</button>
+    </section>
+  </main>;
 }

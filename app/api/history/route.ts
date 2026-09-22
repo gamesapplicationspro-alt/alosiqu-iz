@@ -11,7 +11,7 @@ type HistoryEntry = {
 export async function GET(request: NextRequest) {
   try {
     const { uid } = await requireVerifiedClient(request);
-    const snapshot = await adminDb().ref(`v2/history/${uid}`).get();
+    const snapshot = await adminDb().ref(`v3/history/${uid}`).get();
     const now = Date.now();
     const entries = Object.entries(snapshot.val() || {})
       .map(([id, value]) => ({ id, ...(value as Omit<HistoryEntry, "id">) }))

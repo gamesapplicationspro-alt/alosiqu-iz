@@ -18,10 +18,9 @@ links to `/quiz` where the interactive multiple‑choice test lives.
 ### Quiz features
 
 - 10 questions with one correct answer each (Greek text).
-- Client‑side state management, shuffling of questions.
-- Progress bar, score calculation and restart button.
-- ErrorBoundary component catches rendering failures.
-- Optional integration with Firebase/Firestore to persist scores (see below).
+- Kahoot-like φάσεις: ερώτηση, αποκάλυψη, κατάταξη και τελικό podium.
+- Server-authoritative scoring, timers και μία απάντηση ανά γύρο.
+- Firebase Realtime Database για ασφαλές ζωντανό multiplayer, αποτελέσματα και ιστορικό 24 ωρών.
 - Responsive design, suitable for phones – just open the URL on a mobile device.
 - Styled using Tailwind CSS with an "historic" colour theme.- **Multiplayer mode**: Create rooms with codes, join with friends, live leaderboard, timers per question, real-time updates.
 
@@ -41,9 +40,9 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Environment variables (optional)
+## Environment variables
 
-If you want to store quiz results in Firestore, create a Firebase project and
+Για live δωμάτια και αποτελέσματα, δημιούργησε Firebase project και
 add the following to your environment (e.g. in `.env.local`):
 
 ```
@@ -53,10 +52,15 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=...
+NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY=...
+FIREBASE_ADMIN_PROJECT_ID=...
+FIREBASE_ADMIN_CLIENT_EMAIL=...
+FIREBASE_ADMIN_PRIVATE_KEY=...
+CRON_SECRET=...
 ```
 
-The application is written so that it still works without any of these values;
-results are logged to the console instead.
+Το μοναχικό παιχνίδι λειτουργεί χωρίς Firebase. Για multiplayer απαιτούνται όλες οι μεταβλητές· η αναλυτική, ασφαλής ρύθμιση βρίσκεται στον οδηγό deployment.
 
 ## Deploy on Vercel
 

@@ -24,11 +24,28 @@ export async function GET(request: NextRequest) {
   });
   if (Object.keys(updates).length) await db.ref().update(updates);
 
+  const expiredV3 = await db.ref("v3/rooms").orderByChild("expiresAt").endAt(now).get();
+  expiredV3.forEach((room) => {
+    const id = room.key!;
+    const code = room.val().code;
+    updates[`v3/rooms/${id}`] = null;
+    updates[`v3/privateRooms/${id}`] = null;
+    updates[`v3/players/${id}`] = null;
+    updates[`v3/members/${id}`] = null;
+    updates[`v3/answers/${id}`] = null;
+    updates[`v3/codes/${code}`] = null;
+  });
+
   const history = await db.ref("v2/history").get();
   history.forEach((userHistory) => userHistory.forEach((entry) => {
     if (entry.val()?.expiresAt <= now) updates[`v2/history/${userHistory.key}/${entry.key}`] = null;
   }));
+  const historyV3 = await db.ref("v3/history").get();
+  historyV3.forEach((userHistory) => userHistory.forEach((entry) => {
+    if (entry.val()?.expiresAt <= now) updates[`v3/history/${userHistory.key}/${entry.key}`] = null;
+  }));
   updates["v2/rateLimits"] = null;
+  updates["v3/rateLimits"] = null;
   if (Object.keys(updates).length) await db.ref().update(updates);
-  return Response.json({ deletedRooms: expired.numChildren() });
+  return Response.json({ deletedRooms: expired.numChildren() + expiredV3.numChildren() });
 }
