@@ -14,11 +14,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await requireHost(id, uid);
     const ref = adminDb().ref(`v2/rooms/${id}`);
     const now = Date.now();
+    const [roomSnapshot, playersSnapshot] = await Promise.all([
+      ref.get(),
+      adminDb().ref(`v2/players/${id}`).get(),
+    ]);
+    const existingRoom = roomSnapshot.val();
+    if (!existingRoom) throw new PublicApiError("Το δωμάτιο δεν βρέθηκε.", 404);
+    if (existingRoom.expiresAt <= now) throw new PublicApiError("Το δωμάτιο έχει λήξει.", 410);
+
+    // A repeated click or a slow realtime update must not be reported as a failed start.
+    if (existingRoom.status === "active") return Response.json({ ok: true, alreadyStarted: true });
+    if (existingRoom.status === "finished") throw new PublicApiError("Το παιχνίδι έχει ήδη ολοκληρωθεί.", 409);
+    if (existingRoom.status !== "waiting") throw new PublicApiError("Το δωμάτιο δεν είναι έτοιμο για έναρξη.", 409);
+    if (playersSnapshot.numChildren() < 3) {
+      throw new PublicApiError("Χρειάζονται τουλάχιστον δύο παίκτες, πέρα από τον host, για να ξεκινήσει το παιχνίδι.", 409);
+    }
+
     const result = await ref.transaction((room) => {
       if (!room || room.expiresAt <= now || room.status !== "waiting") return;
       return { ...room, status: "active", currentQuestionIndex: 0, revealedAnswerId: null, questionDeadlineAt: now + QUESTION_DURATION_MS };
     });
-    if (!result.committed) throw new PublicApiError("Το παιχνίδι δεν μπορεί να ξεκινήσει.", 409);
+    if (!result.committed) {
+      const current = (await ref.get()).val();
+      if (current?.status === "active") return Response.json({ ok: true, alreadyStarted: true });
+      throw new PublicApiError("Η κατάσταση του δωματίου άλλαξε. Ανανέωσε τη σελίδα και δοκίμασε ξανά.", 409);
+    }
     return Response.json({ ok: true });
   } catch (error) {
     return apiError(error);
