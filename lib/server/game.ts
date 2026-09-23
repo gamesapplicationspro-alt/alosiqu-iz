@@ -13,7 +13,7 @@ export type PublicQuestion = { id: string; text: string; answers: PublicAnswer[]
 export type V3Room = {
   id: string; code: string; phase: GamePhase; questionIndex: number; round: number; version: number;
   questions: PublicQuestion[]; createdAt: number; expiresAt: number; phaseEndsAt: number | null;
-  revealCorrectAnswerId: string | null;
+  revealCorrectAnswerId: string | null; paused?: boolean; pausedRemainingMs?: number | null;
 };
 export type V3Player = {
   name: string; score: number; participates: boolean; joinedAt: number;
@@ -76,7 +76,7 @@ export async function createV3Room(uid: string, name: string, requestedCode?: st
   const room: V3Room = {
     id: roomId, code, phase: "lobby", questionIndex: 0, round: 0, version: 1,
     questions: publicQuestions(questions), createdAt: now, expiresAt: now + ROOM_TTL_MS,
-    phaseEndsAt: null, revealCorrectAnswerId: null,
+    phaseEndsAt: null, revealCorrectAnswerId: null, paused: false, pausedRemainingMs: null,
   };
   const host: V3Player = { name, score: 0, participates: true, joinedAt: now, answeredRound: -1, lastScoredRound: -1 };
   await db.ref().update({
