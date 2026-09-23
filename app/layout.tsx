@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Αλοσίκου Ιστορία",
-  description: "Ασφαλές ζωντανό εκπαιδευτικό quiz για την τάξη.",
+  title: "Quiz Ιστορίας",
+  description: "Ασφαλές ζωντανό εκπαιδευτικό quiz ιστορίας για την τάξη.",
 };
 
 export default function RootLayout({

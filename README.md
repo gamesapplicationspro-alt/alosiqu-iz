@@ -2,8 +2,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-This repository hosts a Next.js application that implements an advanced, mobile‑friendly
-quiz about the Fall of Constantinople (Άλωση της Κωνσταντινούπολης).
+This repository hosts Quiz Ιστορίας, an advanced, mobile-friendly Next.js application
+about the Fall of Constantinople (Άλωση της Κωνσταντινούπολης).
 
 ### Local development
 
