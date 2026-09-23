@@ -8,4 +8,6 @@ export interface Question {
   text: string;
   answers: Answer[];
   correctAnswerId: string;
+  explanation?: string;
+  source?: string;
 }

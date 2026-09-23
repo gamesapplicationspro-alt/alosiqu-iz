@@ -9,7 +9,7 @@ export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 export { QUESTION_DURATION_MS, REVEAL_DURATION_MS, SCOREBOARD_DURATION_MS };
 
 export type PublicAnswer = { id: string; text: string };
-export type PublicQuestion = { id: string; text: string; answers: PublicAnswer[] };
+export type PublicQuestion = { id: string; text: string; answers: PublicAnswer[]; explanation?: string; source?: string };
 export type V3Room = {
   id: string; code: string; phase: GamePhase; questionIndex: number; round: number; version: number;
   questions: PublicQuestion[]; createdAt: number; expiresAt: number; phaseEndsAt: number | null;
@@ -50,7 +50,7 @@ function shuffledQuestions(): Question[] {
 }
 
 function publicQuestions(questions: Question[]): PublicQuestion[] {
-  return questions.map(({ id, text, answers }) => ({ id, text, answers }));
+  return questions.map(({ id, text, answers, explanation, source }) => ({ id, text, answers, explanation, source }));
 }
 
 export async function requireV3Member(roomId: string, uid: string) {

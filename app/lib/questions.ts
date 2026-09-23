@@ -1,5 +1,18 @@
 import { Question } from "../types";
 
+const LEARNING_NOTES: Record<string, { explanation: string; source: string }> = {
+  q1: { explanation: "Οι βυζαντινές αφηγήσεις δίνουν έντονο χώρο στον θρήνο, την απώλεια της Πόλης και τη θυσία του αυτοκράτορα.", source: "Δούκας, Ιστορία" },
+  q2: { explanation: "Η οθωμανική ιστοριογραφία συνέδεσε την κατάκτηση με τη θρησκευτική και αυτοκρατορική νομιμοποίηση του Μωάμεθ Β΄.", source: "Kritovoulos, Ιστορία του Mehmed" },
+  q3: { explanation: "Η πτώση της Κωνσταντινούπολης σήμαινε νέα οθωμανική πίεση και απώλεια σημαντικού κέντρου ελληνικής παιδείας.", source: "Steven Runciman, The Fall of Constantinople" },
+  q4: { explanation: "Λόγιοι που μετακινήθηκαν στη Δύση συνέβαλαν στη διάδοση ελληνικών χειρογράφων και στη μελέτη της αρχαίας γραμματείας.", source: "Anthony Grafton, Renaissance Readers" },
+  q5: { explanation: "Η πολυφωνία απαιτεί σύγκριση διαφορετικών μαρτυριών, όχι αποδοχή μίας αφήγησης ως μοναδικής.", source: "Ιστορική μεθοδολογία: ανάλυση πηγών" },
+  q6: { explanation: "Το μεγάλο πυροβόλο του Ορβανού βοήθησε στις ρωγμές των τειχών, αν και η άλωση είχε πολλές στρατιωτικές και πολιτικές αιτίες.", source: "Roger Crowley, 1453" },
+  q7: { explanation: "Η Μόσχα ανέπτυξε αργότερα την ιδέα της Τρίτης Ρώμης, παρουσιάζοντας τον εαυτό της ως διάδοχο της ορθόδοξης αυτοκρατορικής παράδοσης.", source: "Dimitri Obolensky, The Byzantine Commonwealth" },
+  q8: { explanation: "Οι εμπορικές και πολιτικές αλλαγές ενίσχυσαν την ευρωπαϊκή αναζήτηση εναλλακτικών θαλάσσιων δρόμων προς την Ασία.", source: "J. R. Hale, Age of Exploration" },
+  q9: { explanation: "Ο Μωάμεθ Β΄ επιδίωξε να κάνει την Κωνσταντινούπολη πρωτεύουσα μιας μεγάλης αυτοκρατορίας και κέντρο διοίκησης.", source: "Halil İnalcık, The Ottoman Empire" },
+  q10: { explanation: "Ο Μαρμαρωμένος Βασιλιάς είναι μεταγενέστερο λαϊκό σύμβολο ελπίδας και αναγέννησης, όχι τεκμηριωμένο ιστορικό γεγονός.", source: "Νεοελληνική λαϊκή παράδοση" },
+};
+
 // Static list of quiz questions based on the user's prompt
 export const QUESTIONS: Question[] = [
   {
@@ -113,3 +126,7 @@ export const QUESTIONS: Question[] = [
     correctAnswerId: "b",
   },
 ];
+
+for (const question of QUESTIONS) {
+  Object.assign(question, LEARNING_NOTES[question.id]);
+}
