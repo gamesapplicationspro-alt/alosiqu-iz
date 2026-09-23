@@ -38,14 +38,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const answerRef = db.ref(`v3/answers/${id}/${uid}/${room.round}`);
     const answerWrite = await answerRef.transaction((existing) => existing ?? { answerId, submittedAt: now });
-    const playerRef = db.ref(`v3/players/${id}/${uid}`);
-    const playerWrite = await playerRef.transaction((current: V3Player | null) => {
-      if (!current || current.answeredRound >= room.round) return;
-      // Scores are settled only once the question closes. That prevents a live
-      // score change from revealing whether this private answer was correct.
-      return { ...current, answeredRound: room.round };
-    });
-    const replayed = !answerWrite.committed || !playerWrite.committed;
+    // Re-check immediately before the public acknowledgement. This is an
+    // idempotent server write, not a browser-side database transaction.
+    const currentRoom = (await db.ref(`v3/rooms/${id}`).get()).val() as V3Room | null;
+    if (!currentRoom || currentRoom.phase !== "question" || currentRoom.round !== room.round || !currentRoom.phaseEndsAt || currentRoom.phaseEndsAt <= Date.now()) {
+      return Response.json({ accepted: false, expired: true });
+    }
+    await db.ref(`v3/players/${id}/${uid}`).update({ answeredRound: room.round });
+    const replayed = !answerWrite.committed;
     return Response.json({ accepted: true, replayed, answeredRound: room.round });
   } catch (error) {
     return apiError(error);
