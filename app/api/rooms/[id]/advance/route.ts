@@ -58,7 +58,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       for (const [playerId, player] of Object.entries(players || {})) {
         if (!player.participates) continue;
         const answer = answers?.[playerId]?.[String(before.round)];
-        const points = answer?.answerId === correctAnswerId && before.phaseEndsAt
+        const questionStartedAt = before.phaseEndsAt ? before.phaseEndsAt - 20_000 : null;
+        const isInQuestionWindow = Boolean(answer?.submittedAt && before.phaseEndsAt && questionStartedAt
+          && answer.submittedAt >= questionStartedAt && answer.submittedAt <= before.phaseEndsAt);
+        const points = answer?.answerId === correctAnswerId && before.phaseEndsAt && isInQuestionWindow
           ? scoreForAnswer(before.phaseEndsAt - answer.submittedAt)
           : 0;
         updates[`v3/players/${id}/${playerId}/score`] = player.lastScoredRound >= before.round ? player.score : player.score + points;

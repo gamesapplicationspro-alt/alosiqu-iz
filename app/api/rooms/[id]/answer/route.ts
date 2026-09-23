@@ -38,12 +38,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const answerRef = db.ref(`v3/answers/${id}/${uid}/${room.round}`);
     const answerWrite = await answerRef.transaction((existing) => existing ?? { answerId, submittedAt: now });
-    // Re-check immediately before the public acknowledgement. This is an
-    // idempotent server write, not a browser-side database transaction.
-    const currentRoom = (await db.ref(`v3/rooms/${id}`).get()).val() as V3Room | null;
-    if (!currentRoom || currentRoom.phase !== "question" || currentRoom.round !== room.round || !currentRoom.phaseEndsAt || currentRoom.phaseEndsAt <= Date.now()) {
-      return Response.json({ accepted: false, expired: true });
-    }
+    // The initial server timestamp is authoritative. If the phase changes
+    // while this write is completing, this request still arrived in time.
     await db.ref(`v3/players/${id}/${uid}`).update({ answeredRound: room.round });
     const replayed = !answerWrite.committed;
     return Response.json({ accepted: true, replayed, answeredRound: room.round });
