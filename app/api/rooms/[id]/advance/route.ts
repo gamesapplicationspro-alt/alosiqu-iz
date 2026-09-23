@@ -66,6 +66,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           : 0;
         updates[`v3/players/${id}/${playerId}/score`] = player.lastScoredRound >= before.round ? player.score : player.score + points;
         updates[`v3/players/${id}/${playerId}/lastScoredRound`] = Math.max(player.lastScoredRound, before.round);
+        updates[`v3/players/${id}/${playerId}/lastRoundPoints`] = player.lastScoredRound >= before.round ? player.lastRoundPoints ?? 0 : points;
+        updates[`v3/players/${id}/${playerId}/lastResponseMs`] = isInQuestionWindow && answer ? Math.max(0, answer.submittedAt - (questionStartedAt ?? answer.submittedAt)) : null;
       }
     }
     await db.ref().update(updates);

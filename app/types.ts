@@ -10,4 +10,5 @@ export interface Question {
   correctAnswerId: string;
   explanation?: string;
   source?: string;
+  category?: string;
 }

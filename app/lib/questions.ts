@@ -13,6 +13,12 @@ const LEARNING_NOTES: Record<string, { explanation: string; source: string }> = 
   q10: { explanation: "Ο Μαρμαρωμένος Βασιλιάς είναι μεταγενέστερο λαϊκό σύμβολο ελπίδας και αναγέννησης, όχι τεκμηριωμένο ιστορικό γεγονός.", source: "Νεοελληνική λαϊκή παράδοση" },
 };
 
+const CATEGORIES: Record<string, string> = {
+  q1: "Πηγές και μαρτυρίες", q2: "Πηγές και μαρτυρίες", q3: "Μετά την Άλωση",
+  q4: "Μετά την Άλωση", q5: "Πηγές και μαρτυρίες", q6: "Πολιορκία",
+  q7: "Μετά την Άλωση", q8: "Μετά την Άλωση", q9: "Μετά την Άλωση", q10: "Μνήμη και παράδοση",
+};
+
 // Static list of quiz questions based on the user's prompt
 export const QUESTIONS: Question[] = [
   {
@@ -128,5 +134,5 @@ export const QUESTIONS: Question[] = [
 ];
 
 for (const question of QUESTIONS) {
-  Object.assign(question, LEARNING_NOTES[question.id]);
+  Object.assign(question, LEARNING_NOTES[question.id], { category: CATEGORIES[question.id] });
 }

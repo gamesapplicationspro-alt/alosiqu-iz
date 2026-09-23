@@ -9,15 +9,17 @@ export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 export { QUESTION_DURATION_MS, REVEAL_DURATION_MS, SCOREBOARD_DURATION_MS };
 
 export type PublicAnswer = { id: string; text: string };
-export type PublicQuestion = { id: string; text: string; answers: PublicAnswer[]; explanation?: string; source?: string };
+export type PublicQuestion = { id: string; text: string; answers: PublicAnswer[]; explanation?: string; source?: string; category?: string };
+export type QuizSettings = { category: string; questionCount: number };
+export type CustomQuestionInput = { text: string; answers: string[]; correctAnswer: number };
 export type V3Room = {
   id: string; code: string; phase: GamePhase; questionIndex: number; round: number; version: number;
   questions: PublicQuestion[]; createdAt: number; expiresAt: number; phaseEndsAt: number | null;
-  revealCorrectAnswerId: string | null; paused?: boolean; pausedRemainingMs?: number | null;
+  revealCorrectAnswerId: string | null; paused?: boolean; pausedRemainingMs?: number | null; settings?: QuizSettings;
 };
 export type V3Player = {
   name: string; score: number; participates: boolean; joinedAt: number;
-  answeredRound: number; lastScoredRound: number;
+  answeredRound: number; lastScoredRound: number; lastRoundPoints?: number; lastResponseMs?: number | null;
 };
 
 export function normalizeName(value: unknown): string | null {
@@ -45,12 +47,29 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
-function shuffledQuestions(): Question[] {
-  return shuffle(QUESTIONS).map((question) => ({ ...question, answers: shuffle(question.answers) }));
+export const QUIZ_CATEGORIES = ["Όλες", "Πηγές και μαρτυρίες", "Πολιορκία", "Μετά την Άλωση", "Μνήμη και παράδοση", "Custom"] as const;
+
+function shuffledQuestions(settings: QuizSettings = { category: "Όλες", questionCount: QUESTIONS.length }): Question[] {
+  const filtered = settings.category === "Όλες" ? QUESTIONS : QUESTIONS.filter((question) => question.category === settings.category);
+  return shuffle(filtered.length ? filtered : QUESTIONS).slice(0, Math.min(settings.questionCount, filtered.length || QUESTIONS.length)).map((question) => ({ ...question, answers: shuffle(question.answers) }));
 }
 
 function publicQuestions(questions: Question[]): PublicQuestion[] {
-  return questions.map(({ id, text, answers, explanation, source }) => ({ id, text, answers, explanation, source }));
+  return questions.map(({ id, text, answers, explanation, source, category }) => ({ id, text, answers, explanation, source, category }));
+}
+
+function normalizeCustomQuestions(value: unknown): Question[] {
+  if (!Array.isArray(value) || value.length < 3 || value.length > 20) throw new PublicApiError("Το custom quiz χρειάζεται 3 έως 20 ερωτήσεις.");
+  return value.map((item, index) => {
+    const input = item as Partial<CustomQuestionInput>;
+    const text = typeof input.text === "string" ? input.text.trim() : "";
+    const answers = Array.isArray(input.answers) ? input.answers.filter((answer): answer is string => typeof answer === "string").map((answer) => answer.trim()) : [];
+    const correctAnswer = input.correctAnswer;
+    if (text.length < 5 || text.length > 240 || answers.length !== 4 || answers.some((answer) => answer.length < 1 || answer.length > 120) || new Set(answers.map((answer) => answer.toLocaleLowerCase("el"))).size !== 4 || typeof correctAnswer !== "number" || !Number.isInteger(correctAnswer) || correctAnswer < 0 || correctAnswer > 3) {
+      throw new PublicApiError(`Μη έγκυρη custom ερώτηση ${index + 1}.`);
+    }
+    return { id: `custom-${index + 1}`, text, answers: answers.map((answer, answerIndex) => ({ id: String.fromCharCode(97 + answerIndex), text: answer })), correctAnswerId: String.fromCharCode(97 + correctAnswer), category: "Custom" };
+  });
 }
 
 export async function requireV3Member(roomId: string, uid: string) {
@@ -64,7 +83,7 @@ export async function requireV3Host(roomId: string, uid: string) {
   if (member.role !== "host") throw new PublicApiError("Μόνο ο host μπορεί να εκτελέσει αυτή την ενέργεια.", 403);
 }
 
-export async function createV3Room(uid: string, name: string, requestedCode?: string) {
+export async function createV3Room(uid: string, name: string, requestedCode?: string, requestedSettings?: Partial<QuizSettings>, customQuestionsValue?: unknown) {
   const db = adminDb();
   const roomId = db.ref("v3/rooms").push().key!;
   const code = requestedCode ?? generateCode();
@@ -72,11 +91,15 @@ export async function createV3Room(uid: string, name: string, requestedCode?: st
   if (!claim.committed || claim.snapshot.val() !== roomId) throw new PublicApiError("Ο κωδικός χρησιμοποιείται ήδη. Δημιουργήστε νέο κωδικό.", 409);
 
   const now = Date.now();
-  const questions = shuffledQuestions();
+  const customQuestions = customQuestionsValue === undefined ? null : normalizeCustomQuestions(customQuestionsValue);
+  const category = customQuestions ? "Custom" : typeof requestedSettings?.category === "string" && QUIZ_CATEGORIES.includes(requestedSettings.category as typeof QUIZ_CATEGORIES[number]) ? requestedSettings.category : "Όλες";
+  const questionCount = typeof requestedSettings?.questionCount === "number" && Number.isInteger(requestedSettings.questionCount) ? Math.max(3, Math.min(QUESTIONS.length, requestedSettings.questionCount)) : QUESTIONS.length;
+  const settings = { category, questionCount } satisfies QuizSettings;
+  const questions = customQuestions ? shuffle(customQuestions).map((question) => ({ ...question, answers: shuffle(question.answers) })) : shuffledQuestions(settings);
   const room: V3Room = {
     id: roomId, code, phase: "lobby", questionIndex: 0, round: 0, version: 1,
     questions: publicQuestions(questions), createdAt: now, expiresAt: now + ROOM_TTL_MS,
-    phaseEndsAt: null, revealCorrectAnswerId: null, paused: false, pausedRemainingMs: null,
+    phaseEndsAt: null, revealCorrectAnswerId: null, paused: false, pausedRemainingMs: null, settings,
   };
   const host: V3Player = { name, score: 0, participates: true, joinedAt: now, answeredRound: -1, lastScoredRound: -1 };
   await db.ref().update({
