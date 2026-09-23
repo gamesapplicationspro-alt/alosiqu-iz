@@ -14,5 +14,7 @@ describe("quiz phase rules", () => {
     expect(scoreForAnswer(0)).toBe(1000);
     expect(scoreForAnswer(-100)).toBe(1000);
     expect(scoreForAnswer(QUESTION_DURATION_MS + 500)).toBe(1500);
+    expect(scoreForAnswer(QUESTION_DURATION_MS / 2)).toBeGreaterThan(scoreForAnswer(0));
   });
+
 });
